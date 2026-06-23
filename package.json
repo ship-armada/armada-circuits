@@ -1,0 +1,23 @@
+{
+  "name": "@armada/circuits",
+  "version": "0.0.1",
+  "description": "Armada custom zero-knowledge circuits (Groth16/BN254)",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "compile": "bash scripts/compile.sh",
+    "setup:dev": "bash scripts/setup-dev.sh",
+    "test": "bash scripts/test.sh",
+    "lint:circom": "circomspect src/**/*.circom || true",
+    "clean": "rm -rf build/*"
+  },
+  "devDependencies": {
+    "circom2": "^0.2.18",
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.0"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}
