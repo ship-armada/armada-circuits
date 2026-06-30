@@ -1,0 +1,41 @@
+{
+  "operation": "shield",
+  "shape": {
+    "nullifiers": 0,
+    "commitments": 1
+  },
+  "chainId": 31337,
+  "shieldPrivateKey": "a2bf6b2a575197ba90ecdc2c05e5fd17f074bffdebfc13dbee9010d59740c315",
+  "note": {
+    "masterPublicKey": "0x2faa54c49e04ac64b8c4f72d8ef5451e7e602185302058b64d3f857afa643471",
+    "random": "d5f6369a3b46c518532335e2dc496c9b",
+    "npk": "0x076f81ea46a0dbd97123cb8ecd5049cce603565c4ac1436acb5a1078ee9e93db",
+    "tokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "tokenHash": "0000000000000000000000005fbdb2315678afecb367f032d93f642f64180aa3",
+    "value": "100000000",
+    "commitment": "0x165a6689c3ec677b0bee1ad9c5f1acc323064e6bca2da65ed5a7852e3718e348",
+    "merkleTreeNumber": 0,
+    "merkleLeafIndex": 17
+  },
+  "shieldRequestStruct": {
+    "preimage": {
+      "npk": "0x076f81ea46a0dbd97123cb8ecd5049cce603565c4ac1436acb5a1078ee9e93db",
+      "token": {
+        "tokenAddress": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+        "tokenType": 0,
+        "tokenSubID": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "value": "100000000"
+    },
+    "ciphertext": {
+      "encryptedBundle": [
+        "0x433231ca8cfebd4e03090d55829698de361344c9461d4be9a3efd72654cd93a0",
+        "0x8a08aa504f58e7a1317270c67ebdedcc98b7f68a1320d90d80874cde87bca9da",
+        "0xe380970826dcffc9d7df9a456d59c50d661c8314cf6deba0baaa2770f6643ac5"
+      ],
+      "shieldKey": "0x159368cd238c49840cad7eaa2b581711fb09ab23d35859727879529fc38c8f90"
+    }
+  },
+  "txHash": "0x3cc5c12a51e6da7eaa8ca5cded337205ba2ee94a35000e462bce37aad45b6891",
+  "merkleRootAfter": "2441eb29fe82b437abc0d233f7ea211c12bb4d43dd1bc7b0102ff6bbfe0f70c6"
+}

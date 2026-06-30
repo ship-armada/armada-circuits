@@ -1,14 +1,14 @@
 # Differential Test Vectors
 
-This document captures concrete inputs and outputs from the current reference implementation. The captured vectors will be used to verify that the new Armada circuits produce identical public signals and accepted proofs for the same valid operations.
+This document tracks concrete inputs and outputs captured from the live reference implementation. The captured vectors verify that Armada's independent circuits produce identical public signals and accepted proofs for the same valid operations.
 
 ## Methodology
 
-1. Run the SDK in a controlled local environment (Anvil chains + deployed contracts).
-2. For each operation (shield, transfer, unshield, adapt), record:
-   - Private witness values (where extractable)
+1. Run the capture script against a local Anvil deployment.
+2. For each operation (shield, transfer), record:
+   - Private witness values (note preimages, Merkle paths, keys)
    - Public inputs passed to the verifier
-   - Proof (`pi_a`, `pi_b`, `pi_c`)
+   - Proof (Groth16 `a`, `b`, `c`)
    - Transaction metadata (nullifiers, commitments, merkleRoot, boundParams)
 3. Store vectors as JSON fixtures under `tests/fixtures/`.
 4. Once Armada circuits exist, replay each vector through the new prover and assert:
@@ -17,29 +17,39 @@ This document captures concrete inputs and outputs from the current reference im
 
 ## Captured Operations
 
-### Shield (shape 1x2)
+### Shield (shape 0x1)
 
-**Status**: Not captured yet.
+**Status**: ✅ Captured (2026-06-30)
 
-Fields to capture:
-- `merkleRoot`
-- `boundParams`
-- `boundParamsHash`
-- `commitments[2]`
-- `npk`, `token`, `value`, `randomness` for each output
+**File**: `tests/fixtures/generated/shield.json`
 
-### Simple Transfer (shape 2x2)
+Captured fields:
+- `shieldPrivateKey`, `masterPublicKey`, `random`, `npk`
+- `tokenAddress`, `tokenHash`, `value`
+- `commitment` (tree leaf hash)
+- `merkleTreeNumber`, `merkleLeafIndex`
+- `merkleRootAfter` (root after insertion)
+- Full `shieldRequestStruct` (preimage + ciphertext)
+- On-chain `txHash`
 
-**Status**: Not captured yet.
+### Simple Transfer (shape 1x2)
 
-Fields to capture:
-- `merkleRoot`
-- `boundParams`
-- `nullifiers[2]`
-- `commitments[2]`
-- Input note Merkle paths and leaf indices
-- Output note preimages
-- EdDSA signature components
+**Status**: ✅ Captured (2026-06-30)
+
+**File**: `tests/fixtures/generated/transfer-1x2.json`
+
+Captured fields:
+- **Inputs** (1 UTXO):
+  - `notePublicKey`, `tokenHash`, `value`, `random`
+  - `treeNumber`, `leafIndex`, `nullifier`
+  - `merkleProof`: `{ leaf, elements[16], indices, root }`
+- **Keys**: `nullifyingKey`, `spendingPublicKey [x, y]`
+- **Outputs** (2 notes: recipient + change):
+  - `notePublicKey`, `tokenAddress`, `tokenHash`, `value`, `random`
+  - `recipientAddress`
+- **Transaction struct**: `merkleRoot`, `nullifiers[]`, `commitments[]`, `boundParams`, `unshieldPreimage`, `proof`
+- **Public signals**: `[merkleRoot, boundParamsHash, nullifier[0], commitment[0], commitment[1]]`
+- **Bound params hash**: computed via `keccak256(abi.encode(boundParams)) % SNARK_SCALAR_FIELD`
 
 ### Adapt / Lend (shape 1x1)
 
@@ -55,12 +65,14 @@ Fields to capture:
 
 ## Capture Scripts
 
-Add helper scripts under `scripts/capture/`:
-- `capture-shield.ts`
-- `capture-transfer.ts`
-- `capture-adapt.ts`
+- `scripts/capture/capture-reference-vectors.ts` (runs from armada-poc repo root)
 
-These should use the SDK's testing-mode path (which bypasses on-chain proof verification) to generate proofs without requiring real value at risk.
+```bash
+cd /Users/andrewburger/armada/armada-poc
+npm run chains                              # start Anvil
+source config/local.env && npm run setup    # deploy contracts
+npx hardhat run scripts/capture/capture-reference-vectors.ts --network hub
+```
 
 ## Privacy Notice
 

@@ -1,0 +1,50 @@
+{
+  "timestamp": "2026-06-30T14:40:09.571Z",
+  "chainId": 31337,
+  "poseidonParameters": {
+    "notePublicKey": "Poseidon(Poseidon(spendingPublicKey, nullifyingKey), random)",
+    "commitment": "Poseidon(npk, tokenHash, value)",
+    "nullifier": "Poseidon(nullifyingKey, leafIndex)",
+    "merkleNode": "Poseidon(leftChild, rightChild)"
+  },
+  "notePreimageFields": [
+    "npk",
+    "token",
+    "value"
+  ],
+  "tokenHashFields": [
+    "tokenType",
+    "tokenAddress",
+    "tokenSubID"
+  ],
+  "capturedVectors": {
+    "shield": "shield.json",
+    "transfer": "transfer-1x2.json"
+  },
+  "circuitShape": {
+    "nullifiers": 1,
+    "commitments": 2
+  },
+  "publicInputLayout": [
+    "merkleRoot",
+    "boundParamsHash",
+    "...nullifiers",
+    "...commitments"
+  ],
+  "merkleTree": {
+    "depth": 16,
+    "arity": 2,
+    "pathElementsLength": 16
+  },
+  "boundParamsFields": [
+    "treeNumber",
+    "minGasPrice",
+    "unshield",
+    "chainID",
+    "adaptContract",
+    "adaptParams",
+    "commitmentCiphertext"
+  ],
+  "npkDerivation": "Poseidon(Poseidon(spendingPublicKey, nullifyingKey), random)",
+  "tokenHashDerivation": "hash of (tokenType, tokenAddress, tokenSubID)"
+}

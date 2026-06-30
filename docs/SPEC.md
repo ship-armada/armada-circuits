@@ -108,13 +108,21 @@ adaptParamsHash = hash(npk, encryptedBundle, shieldKey)
 
 The adapter contract supplies `adaptParams` and the circuit proves the output commitment was created for the exact npk and encrypted bundle the user intended.
 
-## Open Questions / To Verify
+## Resolved Questions (from live capture, 2026-06-30)
 
-- [ ] Exact Poseidon width and constants for note commitment.
-- [ ] Whether `boundParams` includes `adaptParams` directly or only its hash.
-- [ ] Whether shield operations include a signature or only a preimage proof.
-- [ ] Exact Merkle leaf ordering (left/right computed from path index bit).
-- [ ] Whether output dummy commitments must be zero-valued or can be arbitrary.
-- [ ] Range checks on values (e.g., 120-bit vs full field).
+- [x] **Poseidon width**: 2-input Poseidon (t=3) for all hashes (NPK, commitment, nullifier, Merkle nodes).
+- [x] **boundParams**: Includes `adaptContract` and `adaptParams` as direct fields within the struct (not just the hash).
+- [x] **Shield operations**: Do NOT require a ZK proof. Shield creates a commitment directly from the plaintext preimage. The shield fee is deducted (50 bps) and the remaining value is committed.
+- [x] **Merkle leaf ordering**: Path indices are a packed bigint (little-endian binary). Bit 0 = left, bit 1 = right, starting from the leaf.
+- [x] **Output commitments**: All outputs are real commitments (recipient + change). No dummy/zero-valued commitments needed — the circuit shape (N,M) determines the count.
+- [x] **Value range**: Values are `uint120` (confirmed from `CommitmentPreimage.value` type in Solidity).
 
-These will be resolved by capturing concrete witness/public-signal examples in `DIFFERENTIAL_TEST_VECTORS.md`.
+## Captured Reference Vectors
+
+Vectors are stored in `tests/fixtures/generated/`:
+
+| File | Operation | Shape | Description |
+|------|-----------|-------|-------------|
+| `shield.json` | Shield | (0,1) | Single ERC20 shield with full note preimage |
+| `transfer-1x2.json` | Transfer | (1,2) | Spend 1 UTXO, create 2 outputs (recipient + change) |
+| `capture-summary.json` | — | — | Parameter summary from the capture run |

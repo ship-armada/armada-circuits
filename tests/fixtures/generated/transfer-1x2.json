@@ -1,0 +1,163 @@
+{
+  "operation": "transfer",
+  "shape": {
+    "nullifiers": 1,
+    "commitments": 2
+  },
+  "chainId": 31337,
+  "inputs": [
+    {
+      "notePublicKey": "0x076f81ea46a0dbd97123cb8ecd5049cce603565c4ac1436acb5a1078ee9e93db",
+      "tokenHash": "0000000000000000000000005fbdb2315678afecb367f032d93f642f64180aa3",
+      "tokenAddress": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "value": "99500000",
+      "random": "d5f6369a3b46c518532335e2dc496c9b",
+      "treeNumber": 0,
+      "leafIndex": 17,
+      "nullifier": "0a73b9a89b739271c55b786855ac4807b31255cc59d1cf857f7e8a8810e17ad7",
+      "merkleProof": {
+        "leaf": "165a6689c3ec677b0bee1ad9c5f1acc323064e6bca2da65ed5a7852e3718e348",
+        "elements": [
+          "0617b29d706ffc4a06e7c9551059dd366bd2b8cbf6830747aa3f37a53c6557b3",
+          "01c405064436affeae1fc8e30b2e417b4243bbb819adca3b55bb32efc3e43a4f",
+          "0888d37652d10d1781db54b70af87b42a2916e87118f507218f9a42a58e85ed2",
+          "183f531ead7217ebc316b4c02a2aad5ad87a1d56d4fb9ed81bf84f644549eaf5",
+          "03d45829fdce141a5ea2cb6c1ad998f7076a536ba04a08f574f97c3176c429fb",
+          "1437bb465994e0453357c17a676b9fdba554e215795ebc17ea5012770dfb77c7",
+          "12359ef9572912b49f44556b8bbbfa69318955352f54cfa35cb0f41309ed445a",
+          "2dc656dadc82cf7a4707786f4d682b0f130b6515f7927bde48214d37ec25a46c",
+          "2500bdfc1592791583acefd050bc439a87f1d8e8697eb773e8e69b44973e6fdc",
+          "244ae3b19397e842778b254cd15c037ed49190141b288ff10eb1390b34dc2c31",
+          "0ca2b107491c8ca6e5f7e22403ea8529c1e349a1057b8713e09ca9f5b9294d46",
+          "18593c75a9e42af27b5e5b56b99c4c6a5d7e7d6e362f00c8e3f69aeebce52313",
+          "17aca915b237b04f873518947a1f440f0c1477a6ac79299b3be46858137d4bfb",
+          "2726c22ad3d9e23414887e8233ee83cc51603f58c48a9c9e33cb1f306d4365c0",
+          "08c5bd0f85cef2f8c3c1412a2b69ee943c6925ecf79798bb2b84e1b76d26871f",
+          "27f7c465045e0a4d8bec7c13e41d793734c50006ca08920732ce8c3096261435"
+        ],
+        "indices": "0000000000000000000000000000000000000000000000000000000000000011",
+        "root": "2441eb29fe82b437abc0d233f7ea211c12bb4d43dd1bc7b0102ff6bbfe0f70c6"
+      }
+    }
+  ],
+  "keys": {
+    "nullifyingKey": "0x01ee765201931ac58341034a54c121ce146105e06e0fd6d46034ff2b09b004eb",
+    "spendingPublicKey": [
+      "0x008d1ee14dd15a7e18e3f043b3d685923f9089e7c189b4b26c4a296c9a88b301",
+      "0x07364362eccf7d3945be092781091f3882d2a1f46734071d1f2fe741025c91cb"
+    ]
+  },
+  "eddsaSignature": {
+    "R8": [
+      "0x2b259f00dc83abe7d03a8c14800a39fa46565569fda761daf87f1a4d4730289a",
+      "0x305b8b6dda2d4aa9e192c11d6c40f6c72ebe8ae9455c9cdc37ab04cff8331881"
+    ],
+    "S": "0x05e64df4bdb2d39522e2bff735a3885b491c57fb160155919bf66d6cc95bb651"
+  },
+  "outputs": [
+    {
+      "notePublicKey": "0x20b26377548fde559aa56cd2737ebc86940aef0627dabc9e15898e36c042a8fd",
+      "tokenAddress": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "tokenHash": "0000000000000000000000005fbdb2315678afecb367f032d93f642f64180aa3",
+      "value": "30000000",
+      "random": "c70005c3322aebad72fdb2e4097a7daa",
+      "recipientAddress": "0zk1qy8v9eeve85nynqgnp8en7tpv3frcm48t8kfceslrzaejwr7f0wvrrv7j6fe3z53luzyar9dv87vnatyc9k63nqe29tzhcf07zyq403hhlrd675h0cxyj4e9lel"
+    },
+    {
+      "notePublicKey": "0x198f21b0d171ece4966f7c82b22053eb1ab418d872cb0a04e3be804a3b611a39",
+      "tokenAddress": "0x5fbdb2315678afecb367f032d93f642f64180aa3",
+      "tokenHash": "0000000000000000000000005fbdb2315678afecb367f032d93f642f64180aa3",
+      "value": "69500000",
+      "random": "e294d9e3ca0cdc7c4c94a3125fe2e094",
+      "recipientAddress": "0zk1qyh654xyncz2ce9ccnmjmrh4g508ucpps5czqk9kf5lc27h6vs68rrv7j6fe3z53lljhqrv600qpncmdsajpkgrd5res643yk5pnws89wkeqg6dmfe6hwt5vr84"
+    }
+  ],
+  "transactionStruct": {
+    "merkleRoot": "0x2441eb29fe82b437abc0d233f7ea211c12bb4d43dd1bc7b0102ff6bbfe0f70c6",
+    "nullifiers": [
+      "0x0a73b9a89b739271c55b786855ac4807b31255cc59d1cf857f7e8a8810e17ad7"
+    ],
+    "commitments": [
+      "0x09a9115a5d97340eafcf7c9869ca6f597a492c47a5028bfc43fe9d8772834b27",
+      "0x1541954afdeb3d7c50d2b2cbd04a9bb61c1d3da0963616c1472b077950d7e5f4"
+    ],
+    "boundParams": {
+      "treeNumber": 0,
+      "minGasPrice": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "unshield": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "chainID": "0x0000000000007a69",
+      "adaptContract": "0x0000000000000000000000000000000000000000",
+      "adaptParams": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "commitmentCiphertext": [
+        {
+          "ciphertext": [
+            "0xdb0123f40bc2cf151a3024e1126114b2578f3cab7b3aea7e6313148a28133485",
+            "0x4cb67d6e575347662efeb40bfea1e79823ba713dc9c347c5af315dc38caca115",
+            "0xb1ecdc883495e548b93dbb6d96096684614ae5c1d3cde53b02545443f1709f93",
+            "0x01e12924eb202911d36421920f385bdfed4dfa278c2cb0f0205685e0d851b0b8"
+          ],
+          "blindedSenderViewingKey": "0x846f28c265b9a7a75389310b546622d3ec50954181e9caba2504381220d0f92b",
+          "blindedReceiverViewingKey": "0xd91bf1ff4132d664cf70bf2d31901678cf4bdc9580524d822b1005888257b0a3",
+          "memo": "0x",
+          "annotationData": "0x3a2c2ceffdcda238967b1d98faf678e90dae335ad49a4814f7827248f0db90430d08d801761698c49310972c0b8ff05e368bcca9466b216eefd3bd857b38"
+        },
+        {
+          "ciphertext": [
+            "0x3bca9dcb0e3a023b1e06dfd99dd899a07b9ffa8ca25737d0fbb0ae889341f4e9",
+            "0xfd820bd6074660c469db7da8cce4bafef6c35a27f3741f00eed37038a1275a4f",
+            "0x1e590d31f998efb6dee87e9c9e924c7415896b09dbfa6e8a70cb47111d041a47",
+            "0x0a45a96ef3337242e2b0cce39ee6e832668fce2ea60bf9b83649526e9c7ccfd2"
+          ],
+          "blindedSenderViewingKey": "0xa28b7beb663a61d7bef3caa030adc871bcf6409586d4c2f9c8de10a90741884d",
+          "blindedReceiverViewingKey": "0xa28b7beb663a61d7bef3caa030adc871bcf6409586d4c2f9c8de10a90741884d",
+          "memo": "0x",
+          "annotationData": "0x6796e285e590c5b3727639de5c0d5ef8e018d4f1d1cc8e4d048e7e0ffc5df9c852591eeadeb62f4c944cee39438c14c0e2b1f1f469c6a94e28e70b1ba744"
+        }
+      ]
+    },
+    "unshieldPreimage": {
+      "npk": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "token": {
+        "tokenAddress": "0x0000000000000000000000000000000000000000",
+        "tokenType": 0,
+        "tokenSubID": "0x0000000000000000000000000000000000000000000000000000000000000000"
+      },
+      "value": "0x0000000000000000000000000000000000000000000000000000000000000000"
+    },
+    "proof": {
+      "a": {
+        "x": "0x0baf8a879b67853a509b7b0a3163da962c1fb06afe8d2322449751f8800c5f9f",
+        "y": "0x242830ba3ba6f14016048b474f3916367a13f451cdfd71871be0f94c82c30be9"
+      },
+      "b": {
+        "x": [
+          "0x261f25f5bdd5bced49ad8eafbb97fd63b1cb6416e78d11d64c82d3f67648f814",
+          "0x1bd50fe786e95b4a1d8666d94f6283b6ac6ed81489ade8ea099262e1f6a53be0"
+        ],
+        "y": [
+          "0x10ecacccad8764167c4ea3b913f10ff5ebe7e94229a10239acbff9918bb35c9b",
+          "0x25fa51ece11c83eca12fb2307c6bb927e09b7fd6d1fd35904f717bf264f98479"
+        ]
+      },
+      "c": {
+        "x": "0x2c2462652119a147f6db1ffd90a66657906aff16cda9676a794edcfa9da1ef3c",
+        "y": "0x2bc887c733ce9d9e8f6101e7c90b73055993e2c91e67d39d62ecd6e587f38ee8"
+      }
+    }
+  },
+  "publicSignals": [
+    "0x2441eb29fe82b437abc0d233f7ea211c12bb4d43dd1bc7b0102ff6bbfe0f70c6",
+    "0x21a7a0ecdd13f8eab2cd3623ae780d1bc61f529dab1714f9597e0e280298b7b9",
+    "0x0a73b9a89b739271c55b786855ac4807b31255cc59d1cf857f7e8a8810e17ad7",
+    "0x09a9115a5d97340eafcf7c9869ca6f597a492c47a5028bfc43fe9d8772834b27",
+    "0x1541954afdeb3d7c50d2b2cbd04a9bb61c1d3da0963616c1472b077950d7e5f4"
+  ],
+  "boundParamsHash": "0x21a7a0ecdd13f8eab2cd3623ae780d1bc61f529dab1714f9597e0e280298b7b9",
+  "txHash": "0xae091b76d0594feaade76e85a745bc2cca00f73aed63b06e2fc57581e2613e0e",
+  "metadata": {
+    "tokenAddress": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "transferAmount": "30000000",
+    "senderAddress": "0zk1qyh654xyncz2ce9ccnmjmrh4g508ucpps5czqk9kf5lc27h6vs68rrv7j6fe3z53lljhqrv600qpncmdsajpkgrd5res643yk5pnws89wkeqg6dmfe6hwt5vr84",
+    "recipientAddress": "0zk1qy8v9eeve85nynqgnp8en7tpv3frcm48t8kfceslrzaejwr7f0wvrrv7j6fe3z53luzyar9dv87vnatyc9k63nqe29tzhcf07zyq403hhlrd675h0cxyj4e9lel"
+  }
+}

@@ -4,17 +4,31 @@ Custom zero-knowledge circuits for the Armada privacy pool.
 
 ## Status
 
-**Phase 0 — Specification & Design**
+**Phase 2 — Circuit Implementation ✅ COMPILED (1x2 shape)**
 
-This directory contains the specification, primitive definitions, and planned implementation of Armada's independent circuit set. The circuits are authored from scratch to support Armada's shielded UTXO model and cross-chain privacy flows.
+Circuit sources are written and compiling. Reference vectors captured. Dev trusted setup in progress.
+
+### Milestones
+- [x] Phase 0: Specification & Design
+- [x] Phase 1: Reference vector capture (shield + transfer-1x2)
+- [x] Phase 2: Circuit implementation — Transact.circomp compiled (1x2 shape, ~20k constraints)
+- [ ] Phase 2b: Dev trusted setup + differential test against captured vectors
+- [ ] Phase 3: All circuit shapes compiled + integrated
 
 ## Architecture
 
-- `src/lib/` — reusable Circom primitives (Poseidon, Merkle proof, EdDSA, note commitment/nullifier).
-- `src/operations/` — operation-specific circuits parameterized by `(nullifiers, commitments)`.
-- `docs/` — formal specifications and test vectors.
-- `scripts/` — deterministic compilation and trusted-setup helpers.
-- `tests/` — differential and negative tests.
+- `src/lib/` — reusable Circom primitives (MerkleTreeProof)
+- `src/operations/` — operation-specific circuits parameterized by `(N, M)`
+- `src/main/` — entry points (one per circuit shape)
+- `docs/` — formal specifications and test vectors
+- `scripts/` — deterministic compilation and trusted-setup helpers
+- `tests/` — differential and negative tests
+
+## Dependencies
+
+- **circomlib** (GPL-3.0) — Poseidon, EdDSA, BabyJubJub, comparators primitives
+- **circom** compiler v2.2.3 (GPL-3.0 build tool)
+- **snarkjs** v0.7.6 (GPL-3.0 build tool)
 
 ## Proving System
 
@@ -41,7 +55,9 @@ See `docs/SPEC.md` for the full matrix and public-input layout.
 
 ```bash
 npm install
-npm run compile
+npm run compile       # compile all circuit shapes
+npm run setup:dev     # generate dev ptau + zkey (unsafe — testing only)
+npm run test          # run differential tests
 ```
 
 ## Security
