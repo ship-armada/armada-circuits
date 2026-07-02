@@ -10,17 +10,22 @@ ROOT="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$ROOT/build"
 PTAU_DIR="$BUILD_DIR/ptau"
 
-# Shapes to set up (only those with compiled .r1cs files)
-SHAPES=("1x2")  # Start with 1x2; add more as entry points are created
+# All circuit shapes (must match compile.sh)
+SHAPES=(
+  "1,1" "1,2" "2,2" "2,3" "8,4"
+  "2,1" "3,1" "4,1" "5,1" "6,1" "7,1" "8,1"
+  "3,2" "4,2" "5,2" "6,2"
+  "1,3" "3,3" "4,3"
+)
 
 echo "Running development trusted setup..."
 
 mkdir -p "$PTAU_DIR"
 
 # Phase 1: Powers of Tau (shared across all circuits)
-# Power 15 = 2^15 = 32768 constraints max. Sufficient for all planned circuit shapes.
-# The largest shape (8x4) is estimated at ~150k constraints — increase to 18 if needed.
-POT_POWER=15
+# Power 17 = 2^17 = 131072 constraints max. Covers all 19 shapes.
+# Largest shape (8x4) has ~92.6k constraints.
+POT_POWER=17
 POT_FILE="$PTAU_DIR/pot${POT_POWER}_final.ptau"
 
 if [ ! -f "$POT_FILE" ]; then
@@ -34,13 +39,11 @@ if [ ! -f "$POT_FILE" ]; then
 else
   echo "Phase 1: Using existing $POT_FILE"
 fi
-  echo "  → $POT_FILE"
-else
-  echo "Phase 1: Using existing $POT_FILE"
-fi
 
 # Phase 2: Per-circuit zkey generation
-for shape in "${SHAPES[@]}"; do
+for shape_csv in "${SHAPES[@]}"; do
+  IFS=',' read -r n m <<< "$shape_csv"
+  shape="${n}x${m}"
   R1CS="$BUILD_DIR/$shape/main_${shape}.r1cs"
   ZKEY_DIR="$BUILD_DIR/$shape"
 
