@@ -12,8 +12,14 @@ pragma circom 2.0.0;
  *   4. Creates well-formed output commitments
  *   5. Is authorized by an EdDSA signature over boundParamsHash
  *
- * Public inputs:  [merkleRoot, boundParamsHash, nullifiers[N], commitments[M]]
+ * Public inputs:  [merkleRoot, boundParamsHash, nullifiers[N], commitmentsOut[M]]
  * Witness format: matches the SDK's Prover.formatRailgunInputs exactly
+ *
+ * Signal names MUST match FormattedCircuitInputsRailgun:
+ *   merkleRoot, boundParamsHash, nullifiers, commitmentsOut,
+ *   token, publicKey, signature, randomIn, valueIn,
+ *   pathElements (flat N*16), leavesIndices, nullifyingKey,
+ *   npkOut, valueOut
  *
  * boundParamsHash is a pass-through public input — it is NOT recomputed in-circuit.
  * It is computed off-chain by the SDK and on-chain by the verifier contract independently.
@@ -28,23 +34,23 @@ template Transact(N, M) {
   signal input merkleRoot;
   signal input boundParamsHash;
   signal input nullifiers[N];
-  signal input commitments[M];
+  signal input commitmentsOut[M];
 
   // ── Private witness: keys ──────────────────────────────────
-  signal input token;               // tokenHash (all inputs/outputs share this)
-  signal input publicKey[2];        // spending public key [x, y] on BabyJubJub
-  signal input signature[3];        // EdDSA [R_x, R_y, S]
+  signal input token;                   // tokenHash (all inputs/outputs share this)
+  signal input publicKey[2];            // spending public key [x, y] on BabyJubJub
+  signal input signature[3];            // EdDSA [R_x, R_y, S]
   signal input nullifyingKey;
 
   // ── Private witness: input notes (×N) ──────────────────────
-  signal input randomIn[N];         // note randomness per input
-  signal input valueIn[N];          // note value per input
-  signal input pathElements[N][16]; // Merkle path elements (depth 16)
-  signal input leavesIndices[N];    // Merkle leaf positions (packed)
+  signal input randomIn[N];             // note randomness per input
+  signal input valueIn[N];              // note value per input
+  signal input pathElements[N * 16];    // Merkle path elements (flat: N inputs × depth 16)
+  signal input leavesIndices[N];        // Merkle leaf positions (packed)
 
   // ── Private witness: output notes (×M) ─────────────────────
-  signal input npkOut[M];           // output note public keys
-  signal input valueOut[M];         // output values
+  signal input npkOut[M];               // output note public keys
+  signal input valueOut[M];             // output values
 
   // ════════════════════════════════════════════════════════════
   // CONSTRAINTS
@@ -79,7 +85,7 @@ template Transact(N, M) {
     merkleProofs[i] = MerkleTreeProof(16);
     merkleProofs[i].leaf <== commHashes[i].out;
     for (var j = 0; j < 16; j++) {
-      merkleProofs[i].pathElements[j] <== pathElements[i][j];
+      merkleProofs[i].pathElements[j] <== pathElements[i * 16 + j];
     }
     merkleProofs[i].pathIndices <== leavesIndices[i];
 
@@ -101,7 +107,7 @@ template Transact(N, M) {
     outCommHashes[j].inputs[0] <== npkOut[j];
     outCommHashes[j].inputs[1] <== token;
     outCommHashes[j].inputs[2] <== valueOut[j];
-    commitments[j] === outCommHashes[j].out;
+    commitmentsOut[j] === outCommHashes[j].out;
   }
 
   // 4. Value conservation: sum(inputs) == sum(outputs)
@@ -120,7 +126,7 @@ template Transact(N, M) {
   sumIn === sumOut;
 
   // 5. Compute the message hash that the EdDSA signature covers.
-  // The SDK signs: Poseidon(merkleRoot, boundParamsHash, ...nullifiers, ...commitments)
+  // The SDK signs: Poseidon(merkleRoot, boundParamsHash, ...nullifiers, ...commitmentsOut)
   // For shape (N,M), this is Poseidon with 2+N+M inputs.
   // circomlib Poseidon supports up to 16 inputs via Poseidon(nInputs).
   component msgHash = Poseidon(2 + N + M);
@@ -130,7 +136,7 @@ template Transact(N, M) {
     msgHash.inputs[2 + i] <== nullifiers[i];
   }
   for (var j = 0; j < M; j++) {
-    msgHash.inputs[2 + N + j] <== commitments[j];
+    msgHash.inputs[2 + N + j] <== commitmentsOut[j];
   }
 
   // 6. EdDSA signature verification over the message hash

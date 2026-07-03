@@ -3,4 +3,4 @@ pragma circom 2.0.0;
 // Entry point for the 6x1 circuit shape (6 nullifiers, 1 commitment)
 include "../operations/Transact.circom";
 
-component main {public [merkleRoot, boundParamsHash, nullifiers, commitments]} = Transact(6, 1);
+component main {public [merkleRoot, boundParamsHash, nullifiers, commitmentsOut]} = Transact(6, 1);

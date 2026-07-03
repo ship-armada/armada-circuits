@@ -39,7 +39,7 @@ function buildCircuitInput(fx) {
     merkleRoot: hexToField(fx.transactionStruct.merkleRoot),
     boundParamsHash: hexToField(fx.boundParamsHash),
     nullifiers: fx.transactionStruct.nullifiers.map(hexToField),
-    commitments: fx.transactionStruct.commitments.map(hexToField),
+    commitmentsOut: fx.transactionStruct.commitments.map(hexToField),
 
     // Private: keys
     token: hexToField(fx.inputs[0].tokenHash),
@@ -57,7 +57,7 @@ function buildCircuitInput(fx) {
     // Private: inputs (N entries)
     randomIn: fx.inputs.map(inp => hexToField(inp.random)),
     valueIn: fx.inputs.map(inp => inp.value),
-    pathElements: fx.inputs.map(inp => inp.merkleProof.elements.map(hexToField)),
+    pathElements: fx.inputs.flatMap(inp => inp.merkleProof.elements.map(hexToField)),
     leavesIndices: fx.inputs.map(inp => inp.leafIndex.toString()),
 
     // Private: outputs (M entries)
