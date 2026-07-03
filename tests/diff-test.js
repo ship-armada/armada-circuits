@@ -1,26 +1,26 @@
 /**
- * Differential test: feed captured reference vector through our circuit.
+ * Differential test: feed captured reference vectors through our circuits.
  *
- * Loads transfer-1x2.json fixture, constructs circuit input, generates
- * witness + proof, and verifies it against the captured public signals.
+ * For each fixture in tests/fixtures/generated/, this script:
+ *   1. Reads the fixture's shape (NxM) from its metadata
+ *   2. Constructs the circuit input from witness data
+ *   3. Generates a proof using the matching compiled circuit
+ *   4. Compares public signals against the captured reference
+ *   5. Verifies the proof with the circuit's vkey
  *
- * Run from armada-circuits repo root:
- *   node tests/diff-test.js
+ * Usage:
+ *   node tests/diff-test.js                      # run all fixtures
+ *   node tests/diff-test.js transfer-1x2         # run a specific fixture
  */
 
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 const snarkjs = require('snarkjs');
 
 const FIXTURES = path.join(__dirname, 'fixtures', 'generated');
-const BUILD = path.join(__dirname, '..', 'build', '1x2');
-const WASM = path.join(BUILD, 'main_1x2_js', 'main_1x2.wasm');
-const ZKEY = path.join(BUILD, 'final.zkey');
-const VKEY = path.join(BUILD, 'vkey.json');
+const BUILD_ROOT = path.join(__dirname, '..', 'build');
 
 function hexToField(hex) {
-  // Strip 0x prefix if present, convert to decimal string for snarkjs
   const clean = hex.startsWith('0x') ? hex.slice(2) : hex;
   return BigInt('0x' + clean).toString();
 }
@@ -29,28 +29,12 @@ function stripHex(hex) {
   return hex.startsWith('0x') ? hex.slice(2) : hex;
 }
 
-async function main() {
-  console.log('='.repeat(60));
-  console.log('  Differential Test: transfer-1x2');
-  console.log('='.repeat(60));
-
-  // Load fixture
-  const fixturePath = path.join(FIXTURES, 'transfer-1x2.json');
-  if (!fs.existsSync(fixturePath)) {
-    throw new Error('Fixture not found: ' + fixturePath);
-  }
-  const fx = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
-  console.log('Loaded fixture:', fixturePath);
-  console.log('Shape:', fx.shape.nullifiers + 'x' + fx.shape.commitments);
-
-  // Build circuit input from fixture
-  // Circuit expects (from SDK formatRailgunInputs):
-  //   merkleRoot, boundParamsHash, nullifiers[], commitments[],
-  //   token, publicKey[2], signature[3], nullifyingKey,
-  //   randomIn[], valueIn[], pathElements[N][16], leavesIndices[],
-  //   npkOut[], valueOut[]
-
-  const input = {
+/**
+ * Build the circom witness input from a captured fixture.
+ * Works for any (N,M) shape — arrays auto-size from the fixture.
+ */
+function buildCircuitInput(fx) {
+  return {
     // Public inputs
     merkleRoot: hexToField(fx.transactionStruct.merkleRoot),
     boundParamsHash: hexToField(fx.boundParamsHash),
@@ -58,7 +42,7 @@ async function main() {
     commitments: fx.transactionStruct.commitments.map(hexToField),
 
     // Private: keys
-    token: hexToField(fx.inputs[0].tokenHash),  // tokenHash
+    token: hexToField(fx.inputs[0].tokenHash),
     publicKey: [
       hexToField(fx.keys.spendingPublicKey[0]),
       hexToField(fx.keys.spendingPublicKey[1]),
@@ -70,77 +54,142 @@ async function main() {
     ],
     nullifyingKey: hexToField(fx.keys.nullifyingKey),
 
-    // Private: inputs
+    // Private: inputs (N entries)
     randomIn: fx.inputs.map(inp => hexToField(inp.random)),
-    valueIn: fx.inputs.map(inp => inp.value),  // already decimal string
+    valueIn: fx.inputs.map(inp => inp.value),
     pathElements: fx.inputs.map(inp => inp.merkleProof.elements.map(hexToField)),
     leavesIndices: fx.inputs.map(inp => inp.leafIndex.toString()),
 
-    // Private: outputs
+    // Private: outputs (M entries)
     npkOut: fx.outputs.map(out => hexToField(out.notePublicKey)),
-    valueOut: fx.outputs.map(out => out.value),  // already decimal string
+    valueOut: fx.outputs.map(out => out.value),
   };
+}
 
-  console.log('\nCircuit input constructed.');
-  console.log('  merkleRoot:', input.merkleRoot.slice(0, 20) + '...');
-  console.log('  boundParamsHash:', input.boundParamsHash.slice(0, 20) + '...');
-  console.log('  token:', input.token);
-  console.log('  nullifiers:', input.nullifiers);
-  console.log('  commitments:', input.commitments);
-  console.log('  pathElements[0] length:', input.pathElements[0].length);
-  console.log('  leavesIndices:', input.leavesIndices);
+/**
+ * Run a differential test for a single fixture.
+ */
+async function runDiffTest(fixturePath) {
+  const fxName = path.basename(fixturePath, '.json');
+  const fx = JSON.parse(fs.readFileSync(fixturePath, 'utf-8'));
 
-  // Verify artifacts exist
-  for (const [label, p] of [['WASM', WASM], ['ZKEY', ZKEY], ['VKEY', VKEY]]) {
+  const N = fx.shape.nullifiers;
+  const M = fx.shape.commitments;
+  const shapeName = `${N}x${M}`;
+
+  console.log('='.repeat(60));
+  console.log(`  Differential Test: ${fxName} (${shapeName})`);
+  console.log('='.repeat(60));
+
+  // Locate build artifacts for this shape
+  const buildDir = path.join(BUILD_ROOT, shapeName);
+  const wasm = path.join(buildDir, `main_${shapeName}_js`, `main_${shapeName}.wasm`);
+  const zkey = path.join(buildDir, 'final.zkey');
+  const vkeyPath = path.join(buildDir, 'vkey.json');
+
+  for (const [label, p] of [['WASM', wasm], ['ZKEY', zkey], ['VKEY', vkeyPath]]) {
     if (!fs.existsSync(p)) {
       throw new Error(`${label} not found: ${p}. Run 'npm run compile && npm run setup:dev' first.`);
     }
   }
 
-  // Generate witness + proof
+  // Build circuit input
+  const input = buildCircuitInput(fx);
+  console.log(`Loaded fixture: ${fixturePath}`);
+  console.log(`  nullifiers: ${N}, commitments: ${M}`);
+  console.log(`  inputs: ${input.randomIn.length}, outputs: ${input.npkOut.length}`);
+  console.log(`  pathElements[0] length: ${input.pathElements[0].length}`);
+
+  // Generate proof
   console.log('\nGenerating proof...');
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, WASM, ZKEY);
-
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasm, zkey);
   console.log('Proof generated.');
-  console.log('  proof.a.x:', proof.pi_a[0].slice(0, 20) + '...');
-  console.log('  public signals:', publicSignals);
 
-  // Compare public signals with fixture
+  // Compare public signals
   console.log('\nComparing public signals...');
   const expectedSignals = fx.publicSignals.map(s => {
     const clean = typeof s === 'string' ? s.replace(/^0x/i, '') : String(s);
     return BigInt('0x' + clean).toString();
   });
 
-  let allMatch = true;
+  let signalsMatch = true;
   for (let i = 0; i < publicSignals.length; i++) {
     const got = publicSignals[i];
     const want = expectedSignals[i];
     const match = got === want;
-    if (!match) allMatch = false;
+    if (!match) signalsMatch = false;
     console.log(`  [${i}] ${match ? '✓' : '✗'} got=${got.slice(0, 20)}... want=${want.slice(0, 20)}...`);
   }
 
-  if (!allMatch) {
-    console.error('\n❌ Public signals mismatch!');
+  if (!signalsMatch) {
+    console.error('  ❌ Public signals mismatch!');
   }
 
   // Verify proof
   console.log('\nVerifying proof...');
-  const vkey = JSON.parse(fs.readFileSync(VKEY, 'utf-8'));
+  const vkey = JSON.parse(fs.readFileSync(vkeyPath, 'utf-8'));
   const isValid = await snarkjs.groth16.verify(vkey, publicSignals, proof);
-  console.log(isValid ? '✅ Proof verified successfully!' : '❌ Proof verification FAILED!');
+  console.log(isValid ? '  ✅ Proof verified!' : '  ❌ Proof verification FAILED!');
 
-  if (allMatch && isValid) {
-    console.log('\n' + '='.repeat(60));
-    console.log('  ALL CHECKS PASSED — Circuit matches reference vector');
-    console.log('='.repeat(60));
+  const passed = signalsMatch && isValid;
+  console.log(passed ? '  ✓ ALL CHECKS PASSED' : '  ✗ SOME CHECKS FAILED');
+  console.log('');
+
+  return { name: fxName, shape: shapeName, passed, signalsMatch, isValid };
+}
+
+async function main() {
+  // Determine which fixtures to test
+  const arg = process.argv[2];
+  let fixturePaths;
+
+  if (arg) {
+    // Single fixture specified
+    const name = arg.endsWith('.json') ? arg.slice(0, -5) : arg;
+    fixturePaths = [path.join(FIXTURES, name + '.json')];
   } else {
-    console.log('\n' + '='.repeat(60));
-    console.log('  SOME CHECKS FAILED');
-    console.log('='.repeat(60));
-    process.exit(1);
+    // All transfer/shield/unshield fixtures
+    fixturePaths = fs.readdirSync(FIXTURES)
+      .filter(f => f.endsWith('.json') && (f.startsWith('transfer-') || f.startsWith('unshield-') || f.startsWith('adapt-')))
+      .map(f => path.join(FIXTURES, f))
+      .sort();
   }
+
+  if (fixturePaths.length === 0) {
+    console.log('No fixtures found in', FIXTURES);
+    return;
+  }
+
+  console.log(`Running ${fixturePaths.length} differential test(s)...\n`);
+
+  const results = [];
+  for (const fp of fixturePaths) {
+    if (!fs.existsSync(fp)) {
+      console.error('Fixture not found:', fp);
+      continue;
+    }
+    try {
+      results.push(await runDiffTest(fp));
+    } catch (err) {
+      console.error(`Error testing ${path.basename(fp)}:`, err.message);
+      results.push({ name: path.basename(fp, '.json'), shape: '?', passed: false, error: err.message });
+    }
+  }
+
+  // Summary
+  console.log('='.repeat(60));
+  console.log('  SUMMARY');
+  console.log('='.repeat(60));
+  const passed = results.filter(r => r.passed).length;
+  const failed = results.filter(r => !r.passed).length;
+  for (const r of results) {
+    const status = r.passed ? '✓' : '✗';
+    const extra = r.error ? ` (${r.error})` : '';
+    console.log(`  ${status} ${r.name} (${r.shape})${extra}`);
+  }
+  console.log(`\n  ${passed} passed, ${failed} failed`);
+
+  if (failed > 0) process.exit(1);
 }
 
 main().catch(err => {
