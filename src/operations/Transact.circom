@@ -27,6 +27,7 @@ pragma circom 2.0.0;
 
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
+include "../../node_modules/circomlib/circuits/bitify.circom";
 include "../lib/merkle.circom";
 
 template Transact(N, M) {
@@ -111,6 +112,19 @@ template Transact(N, M) {
   }
 
   // 4. Value conservation: sum(inputs) == sum(outputs)
+  // Values are constrained to < 2^120 to prevent modular arithmetic exploits.
+  // Shield enforces max uint80 on-chain; 120 bits gives headroom for sums.
+  component valueInRange[N];
+  for (var i = 0; i < N; i++) {
+    valueInRange[i] = Num2Bits(120);
+    valueInRange[i].in <== valueIn[i];
+  }
+  component valueOutRange[M];
+  for (var j = 0; j < M; j++) {
+    valueOutRange[j] = Num2Bits(120);
+    valueOutRange[j].in <== valueOut[j];
+  }
+
   signal sumIn;
   signal sumOut;
   var accIn = 0;
