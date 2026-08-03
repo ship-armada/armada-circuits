@@ -1,0 +1,306 @@
+{
+  "version": 1,
+  "name": "armada-circuits-v1-ceremony",
+  "created": "2026-08-03T13:23:31Z",
+  "ptau": {
+    "source": "https://storage.googleapis.com/zkevm/ptau/powersOfTau28_hez_final_17.ptau",
+    "file": "build/ptau/powersOfTau28_hez_final_17.ptau",
+    "sha256": "6b662a324867139fb1a20a324d90b6ff61856dfb23f59326909f14b0e2483ae0",
+    "power": 17
+  },
+  "beacon": {
+    "type": "ethereum-block-hash",
+    "chain": "ethereum-mainnet",
+    "rule": "After the final public contribution is merged, each shape is finalized with a random beacon: the keccak block hash of the first Ethereum mainnet block at or after the announced height. Anyone can recompute the final zkey from the last contribution and the published block hash.",
+    "announcedHeight": 25696242,
+    "blockHeight": null,
+    "blockHash": null
+  },
+  "shapes": {
+    "1x1": {
+      "status": "open",
+      "r1csSha256": "05d0fb64957030cf976ed25f4f94c22d5843ceeef5f90a8e5187a0ac2690fa78",
+      "wasmSha256": "17e11f880c7d8165716a1ced644f12168226f3536bbaf8162f4c74f6b6bb1f61",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "cf6f8a32922f505bc65b3ae721c298ddbf8c77a8f43912a6c26609894e16e344",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "1x2": {
+      "status": "open",
+      "r1csSha256": "bc794f5bc699e928f4db54c3e52369bb4582011683f667fb832f09d9341b5c87",
+      "wasmSha256": "b48679b330c75b3d22397d67c4d11883e4f94b811a351ada90d18b62489220be",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "75dac909a7c0ae0cdd2db408ead10b6b0b038cfe3dc218d745745c25f2186a81",
+          "zkeyUrl": "https://github.com/ship-armada/armada-circuits/releases/download/v1.0.0-ceremony-test/1x2-0000.zkey"
+        }
+      ],
+      "final": null
+    },
+    "2x2": {
+      "status": "open",
+      "r1csSha256": "b57e9c46042209ff79389849d9ab73a84213214beb12418a83e3a6dd9e8999d5",
+      "wasmSha256": "e7aca1effbc1ef0f9302209be7eb2621fbf37d323cc9c2465956785cc34f3340",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "814752fa667245202ec12cac0e6ee4e96a04bfcbb17624f5537a33aa99adab7c",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "2x3": {
+      "status": "open",
+      "r1csSha256": "57305fcaa7cafd34fcdc1a01db7c5c5ef9c72dafb97ffcf10e76c09ca57f5163",
+      "wasmSha256": "f4ba7c5092582458689b4dfe76b148d94c2b040b83bfa1ecf1f730bff3465b53",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "1cedc4f011aa781354871e080d29a3bd05580ffd968d98c40d66c6769e1dfbe2",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "8x4": {
+      "status": "open",
+      "r1csSha256": "ed07839132c862abb04f38f3c0a25bc7f846fb674ea85bf3500a3f6264dcd30c",
+      "wasmSha256": "be1628deeba3b4975614bf7896962942795443ef993d7088edd510322171d510",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "ecc8d537439deb6bbc4a8118185ae3adc59cda6776ca004b147752b8267c3e1d",
+          "zkeyUrl": "https://github.com/ship-armada/armada-circuits/releases/download/v1.0.0-ceremony-test/8x4-0000.zkey"
+        }
+      ],
+      "final": null
+    },
+    "2x1": {
+      "status": "open",
+      "r1csSha256": "e95945bffd53ad5e463b6c073409ea7ace4fb98635159452ff79dbab707b7f12",
+      "wasmSha256": "05c96c266a85b7f5a7028dd89383c37153daa60d99c0f3c5666dfc6c0be2ec80",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "89fdaa42c119578464e06075e4d83198a77979e105e9f4e083b52ccb30927154",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "3x1": {
+      "status": "open",
+      "r1csSha256": "8115e962605d8a72e4bf79d1db3ef04b5f978452f7932a38aa170297dd59536a",
+      "wasmSha256": "cad971c363f20f64691ef89564f1af5044678263f7400b6da2b7a19c9501bb84",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "c9ca6096cc3dc5569fa609ccf90039146648460714894e432d834bdeb16bd345",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "4x1": {
+      "status": "open",
+      "r1csSha256": "545eb0d6a4cc91b07b70d983906c819b14f5d7908ef4bf10671cd35a0dc6a1d9",
+      "wasmSha256": "852d2da16cc7269e0238519eba4b98e9c9db2513af946d456fc9381050bf0bcd",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "a37a19b098bb511dbeb1a11550b0350cb38fd594236561fe28a037708576d29f",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "5x1": {
+      "status": "open",
+      "r1csSha256": "a75999159dd5fffffeaa0d6bd0cd7f5741b8c93facbd67013736a14b4d8a91e3",
+      "wasmSha256": "7b3503c70b920046d1693f4366744e010bec95bf0092b4626c624f0b625ff786",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "b4e0f17e67791d8132802755d8ad5b08f19816ff60bf62971150f7ef5ecb0893",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "6x1": {
+      "status": "open",
+      "r1csSha256": "3b205177dec5adeea71cbce0ca933da2b26d6ba325898c6936f06494f8f54591",
+      "wasmSha256": "1d878efeff1041c48c0b9795cc63e8071116ef98be750b4b4c36f642fbae6fdf",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "4b49d2374bf71ea725c8ec7dd45ded620aa652166bc3286e70b94b4a5ee92ec5",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "7x1": {
+      "status": "open",
+      "r1csSha256": "bdcc24ed31e9b84f93871064c712ecb8631d087c06117a6518a5dc58d1820bae",
+      "wasmSha256": "51afb894bc31261234754342cfa3779316a2eb1c87d0acb875247eb98addc7ed",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "2af1bd147376bb2b24dc47673a3f81d8777354aca3c40c1dc2e97337f832613e",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "8x1": {
+      "status": "open",
+      "r1csSha256": "7fc7d43ab2ca41264f43ffc3da1bd26c2dc2d33964b535c5b26fe57bb3da07d0",
+      "wasmSha256": "da4129a0916bf75955859a983b1c36afb51356c262c10b48f01f40cdea3df5c6",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "17b8a36e275453802ed1d960f04d69f06bd98162382536c21af3668222c3e53e",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "3x2": {
+      "status": "open",
+      "r1csSha256": "14fd3b63777100f84536ade830405dfc004bdc4f34b7baf81f2853dc317fa875",
+      "wasmSha256": "c0c9e9d1e1e16c833bf79876441f6c1bb8e2d33f8dfc7c05a3bd6320e27cf9ce",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "1c848a546a7bd67f084d5c72f19600c3531d59abf5904ec8d39e5fad5c405b48",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "4x2": {
+      "status": "open",
+      "r1csSha256": "7b25c51df7bc79eab59ff4d1de9d3d0c97a69ff02461ca99710d4aa7f0896307",
+      "wasmSha256": "96e350a0a7fdfadc84dbdb1e35445f7e65e2a30440b6c871840714710a9440f2",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "9606234861e5d6397a6ff9b5723c0fcee7f5414ef24f8be90e3069e40eb5cc53",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "5x2": {
+      "status": "open",
+      "r1csSha256": "3ec68425cb7a3b552ee3fae84fef151ceb9861bacec1820abcf09d80389bac92",
+      "wasmSha256": "b1ae1bd9fd048670aa4870e136354ce182406d42365e221af98c16d64eab6f7b",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "5ffb39c98729a398fc5dc5b661c355538356dda3bdee5c79a6d4bc3ed6ae54dc",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "6x2": {
+      "status": "open",
+      "r1csSha256": "bd4315b2598e48756036112444cb3291b542be6940efe775cdae59d19236d238",
+      "wasmSha256": "515be362363e843a4ce3997a8db5edd274ae1732a0b1e462585e7a0de4ce8749",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "9a8c76ada64e158e2f997025d32452dd4766785a9cb42cbee61b40ed5a6e7e89",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "1x3": {
+      "status": "open",
+      "r1csSha256": "c1c4401b05c3d9cf22384317ddee1264182d13340c39a72d0c03f363701f829f",
+      "wasmSha256": "13e4e98dd00529514e67667434898fac1686978ca42abd16ab56d808627457d4",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "9bf915ead6bb30e38349e4c574efe2ffe8fcab7923e5020e5a673c0d78c280e8",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "3x3": {
+      "status": "open",
+      "r1csSha256": "222ee278a3b895ac0d044891eb8170d5a90b2b077f2bc1441591c6f65f584242",
+      "wasmSha256": "b8b5fba4d4e1374f50ef01495b0b1bb75f14cf2157abf493ce30a96e47965a50",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "c1013210188aa62c7eb7a90df4e8fba0eefd91c40a2d0283ca2b684a678ac84d",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    },
+    "4x3": {
+      "status": "open",
+      "r1csSha256": "3e7bf7e006c0a497282d6aa977bbb1a1fe4650dd6364dfcdafd62ea06e363b57",
+      "wasmSha256": "4254d0421d1042f25dd4f43b03fd89baedf398eb34f81a698b39088062bcf39d",
+      "contributions": [
+        {
+          "index": 0,
+          "type": "setup",
+          "name": "coordinator",
+          "zkeySha256": "c8ab4563cc76e0188287ae80391bd86a542367d1002c76285b337e39e40d1ab5",
+          "zkeyUrl": null
+        }
+      ],
+      "final": null
+    }
+  }
+}

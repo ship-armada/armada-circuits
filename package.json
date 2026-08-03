@@ -9,7 +9,13 @@
     "setup:dev": "bash scripts/setup-dev.sh",
     "test": "bash scripts/test.sh",
     "lint:circom": "circomspect src/**/*.circom || true",
-    "clean": "rm -rf build/*"
+    "clean": "rm -rf build/*",
+    "ceremony:ptau": "bash scripts/ceremony/fetch-ptau.sh",
+    "ceremony:init": "bash scripts/ceremony/init.sh",
+    "ceremony:contribute": "bash scripts/ceremony/contribute.sh",
+    "ceremony:verify": "bash scripts/ceremony/verify.sh",
+    "ceremony:finalize": "bash scripts/ceremony/finalize.sh",
+    "ceremony:test": "bash scripts/ceremony/test-e2e.sh"
   },
   "devDependencies": {
     "circom2": "^0.2.18",

@@ -5,6 +5,10 @@
 - `src/lib/merkle.circom` — Merkle tree proof verifier
 - `src/main/main_NxM.circom` — 19 entry points
 
+> **Trusted setup:** this review covers circuit correctness only. Production
+> key provenance (public multi-party ceremony replacing the UNSAFE dev
+> setup) is handled separately — see `docs/CEREMONY.md` and armada-poc #406.
+
 ## Summary
 
 | # | Finding | Severity | Status |
