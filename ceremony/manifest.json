@@ -43,6 +43,16 @@
           "name": "coordinator",
           "zkeySha256": "75dac909a7c0ae0cdd2db408ead10b6b0b038cfe3dc218d745745c25f2186a81",
           "zkeyUrl": "https://github.com/ship-armada/armada-circuits/releases/download/v1.0.0-ceremony-test/1x2-0000.zkey"
+        },
+        {
+          "index": 1,
+          "type": "contribution",
+          "name": "iskay",
+          "zkeySha256": "2b00428b41a56fb0e6102bf8811bcd8d7bbe654aa77716be24cccd9617d03460",
+          "zkeyUrl": "https://github.com/ship-armada/armada-circuits/releases/download/v1.0.0-ceremony-test/1x2-0001.zkey",
+          "contributionHash": "4b9fd73bdf8152f7a4152ab6df3c3866",
+          "attestation": "1x2/0001-iskay.md",
+          "timestamp": "2026-08-03T15:02:34Z"
         }
       ],
       "final": null
