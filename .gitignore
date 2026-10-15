@@ -5,3 +5,4 @@ build/
 *.r1cs
 *.wasm
 *.sym
+ceremony/.cache/

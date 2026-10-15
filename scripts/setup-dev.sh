@@ -3,7 +3,8 @@ set -euo pipefail
 
 # Development trusted setup.
 # WARNING: This produces an UNSAFE deterministic setup suitable only for local
-# testing and CI. Production artifacts require a secure multi-party ceremony.
+# testing and CI. Production artifacts require the public multi-party
+# ceremony — see docs/CEREMONY.md (scripts/ceremony/).
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"

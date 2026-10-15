@@ -60,6 +60,26 @@ npm run setup:dev     # generate dev ptau + zkey (unsafe — testing only)
 npm run test          # run differential tests
 ```
 
+## Trusted Setup
+
+The dev setup above is **single-contributor and UNSAFE** — local testing and
+CI only. Production keys come from the public multi-party ceremony:
+
+- **Runbook:** `docs/CEREMONY.md`
+- **State of record:** `ceremony/manifest.json`
+- Phase 1 builds on the Hermez perpetual Powers-of-Tau; Phase 2 is a
+  PR-based per-shape ceremony finalized with a pre-committed Ethereum block
+  hash beacon.
+
+```bash
+npm run ceremony:ptau         # fetch + hash-check the Hermez ptau
+npm run ceremony:contribute -- <shape> <handle>   # add your contribution
+npm run ceremony:verify -- --all                  # verify the chain
+```
+
+Until the ceremony completes and the `v1.0.0` release is cut, the only
+published artifacts are the UNSAFE `v0.1.0-dev` set — **testnet only**.
+
 ## Security
 
 This repo contains production-intent circuit sources. All changes require review, differential testing against reference test vectors, and formal/static analysis before any artifact is used on mainnet.
