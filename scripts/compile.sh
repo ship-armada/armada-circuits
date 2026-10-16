@@ -48,3 +48,13 @@ for shape in "${SHAPES[@]}"; do
 done
 
 echo "Done. Compiled ${#SHAPES[@]} shapes."
+
+# Nullifier disclosure circuit (selective disclosure, ADR-0020) and its test-only entry point.
+for entry in "$SRC_DIR/main/main_disclosure.circom" "$ROOT/tests/circuits/ownership_test.circom"; do
+  name="$(basename "$entry" .circom)"
+  outdir="$BUILD_DIR/${name#main_}"
+  echo "  Compiling $name..."
+  mkdir -p "$outdir"
+  "$CIRCOM_BIN" "$entry" --r1cs --wasm --sym -o "$outdir" --O1
+  echo "    → $outdir/$name.r1cs"
+done

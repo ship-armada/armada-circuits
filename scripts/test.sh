@@ -12,7 +12,5 @@ echo "Running static analysis..."
 npm run lint:circom
 
 echo "Running tests..."
-# Placeholder: once tests exist, run them here.
-# npx mocha tests/**/*.test.ts
-
-echo "No tests implemented yet."
+# Needs `npm run compile` and `npm run setup:dev` first.
+node --test tests/disclosure.test.js

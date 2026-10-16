@@ -41,18 +41,15 @@ else
 fi
 
 # Phase 2: Per-circuit zkey generation
-for shape_csv in "${SHAPES[@]}"; do
-  IFS=',' read -r n m <<< "$shape_csv"
-  shape="${n}x${m}"
-  R1CS="$BUILD_DIR/$shape/main_${shape}.r1cs"
-  ZKEY_DIR="$BUILD_DIR/$shape"
+setup_circuit() {
+  local name="$1" R1CS="$2" ZKEY_DIR="$3"
 
   if [ ! -f "$R1CS" ]; then
-    echo "  SKIP $shape (no .r1cs — run compile first)"
-    continue
+    echo "  SKIP $name (no .r1cs — run compile first)"
+    return
   fi
 
-  echo "Phase 2: $shape..."
+  echo "Phase 2: $name..."
 
   # Initial zkey (ceremony start)
   snarkjs groth16 setup "$R1CS" "$POT_FILE" "$ZKEY_DIR/0000.zkey"
@@ -67,7 +64,16 @@ for shape_csv in "${SHAPES[@]}"; do
 
   echo "  → $ZKEY_DIR/final.zkey"
   echo "  → $ZKEY_DIR/vkey.json"
+}
+
+for shape_csv in "${SHAPES[@]}"; do
+  IFS=',' read -r n m <<< "$shape_csv"
+  shape="${n}x${m}"
+  setup_circuit "$shape" "$BUILD_DIR/$shape/main_${shape}.r1cs" "$BUILD_DIR/$shape"
 done
+
+# Nullifier disclosure circuit (selective disclosure, ADR-0020)
+setup_circuit "disclosure" "$BUILD_DIR/disclosure/main_disclosure.r1cs" "$BUILD_DIR/disclosure"
 
 echo "Dev setup complete."
 echo "WARNING: These keys are NOT secure. Do not use on mainnet."
