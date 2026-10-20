@@ -16,6 +16,7 @@ SHAPES=(
   "2,1" "3,1" "4,1" "5,1" "6,1" "7,1" "8,1"
   "3,2" "4,2" "5,2" "6,2"
   "1,3" "3,3" "4,3"
+  "1,1,1x1_owned" "1,2,1x2_owned" "1,3,1x3_owned"
 )
 
 echo "Running development trusted setup..."
@@ -42,8 +43,8 @@ fi
 
 # Phase 2: Per-circuit zkey generation
 for shape_csv in "${SHAPES[@]}"; do
-  IFS=',' read -r n m <<< "$shape_csv"
-  shape="${n}x${m}"
+  IFS=',' read -r n m name_override <<< "$shape_csv"
+  shape="${name_override:-${n}x${m}}"
   R1CS="$BUILD_DIR/$shape/main_${shape}.r1cs"
   ZKEY_DIR="$BUILD_DIR/$shape"
 
