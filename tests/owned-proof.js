@@ -5,9 +5,11 @@
  *   node tests/owned-proof.js --shape transact-owned-1x2 --case base
  *   node tests/owned-proof.js --shape transact-owned-1x2 --case different-owner
  *
- * Case "base" proves one witness and checks the proof verifies, and that
- * the circuit's npk output matches Poseidon(ownerField, random) computed
- * independently in JavaScript.
+ * Case "base" proves one witness and checks the proof verifies, that the
+ * circuit's npk output matches Poseidon(ownerField, random), and that its
+ * nullifier output matches Poseidon(ownerField, leafIndex) — both computed
+ * independently in JavaScript. The nullifier binds to ownerField alone, so
+ * no other witness input can change it (double-spend protection).
  *
  * Case "different-owner" proves two witnesses that differ only in owner,
  * and checks they produce two different npk values.
@@ -41,7 +43,6 @@ function buildOwnedWitness({ poseidon, m, owner, random, boundParamsHash }) {
   const hash3 = (a, b, c) => F.toString(poseidon([a, b, c]));
 
   const token = "999";
-  const nullifyingKey = "777";
   const leafIndex = "0";
   const valueIn = "1000";
 
@@ -55,7 +56,7 @@ function buildOwnedWitness({ poseidon, m, owner, random, boundParamsHash }) {
   }
   const merkleRoot = levelHash;
 
-  const nullifier = hash2(nullifyingKey, leafIndex);
+  const nullifier = hash2(owner, leafIndex);
 
   const npkOut = [];
   const valueOut = [];
@@ -75,7 +76,6 @@ function buildOwnedWitness({ poseidon, m, owner, random, boundParamsHash }) {
     commitmentsOut,
     ownerField: owner,
     token,
-    nullifyingKey,
     randomIn: [random],
     valueIn: [valueIn],
     pathElements: new Array(DEPTH).fill("0"),
@@ -84,11 +84,11 @@ function buildOwnedWitness({ poseidon, m, owner, random, boundParamsHash }) {
     valueOut,
   };
 
-  return { input, npkExpected: npk };
+  return { input, npkExpected: npk, nullifierExpected: nullifier };
 }
 
 async function proveAndGetNpk({ paths, zkeyPath, poseidon, m, owner, random }) {
-  const { input, npkExpected } = buildOwnedWitness({
+  const { input, npkExpected, nullifierExpected } = buildOwnedWitness({
     poseidon,
     m,
     owner,
@@ -107,10 +107,22 @@ async function proveAndGetNpk({ paths, zkeyPath, poseidon, m, owner, random }) {
   if (npkWitnessIdx === undefined) {
     throw new Error(`main.npk[0] not found in ${paths.sym}`);
   }
+  const nullifierWitnessIdx = symMap.get(`main.nullifiers[0]`);
+  if (nullifierWitnessIdx === undefined) {
+    throw new Error(`main.nullifiers[0] not found in ${paths.sym}`);
+  }
   // publicSignals excludes the constant-1 signal at witness index 0.
   const npkFromProof = publicSignals[npkWitnessIdx - 1];
+  const nullifierFromProof = publicSignals[nullifierWitnessIdx - 1];
 
-  return { proof, publicSignals, npkFromProof, npkExpected };
+  return {
+    proof,
+    publicSignals,
+    npkFromProof,
+    npkExpected,
+    nullifierFromProof,
+    nullifierExpected,
+  };
 }
 
 async function main() {
@@ -127,21 +139,35 @@ async function main() {
   const RANDOM_A = "424242";
 
   if (args.case === "base") {
-    const { proof, publicSignals, npkFromProof, npkExpected } =
-      await proveAndGetNpk({
-        paths,
-        zkeyPath,
-        poseidon,
-        m,
-        owner: OWNER_A,
-        random: RANDOM_A,
-      });
+    const {
+      proof,
+      publicSignals,
+      npkFromProof,
+      npkExpected,
+      nullifierFromProof,
+      nullifierExpected,
+    } = await proveAndGetNpk({
+      paths,
+      zkeyPath,
+      poseidon,
+      m,
+      owner: OWNER_A,
+      random: RANDOM_A,
+    });
 
     const vkey = JSON.parse(fs.readFileSync(vkeyPath, "utf-8"));
     const verified = await snarkjs.groth16.verify(vkey, publicSignals, proof);
     const npk_matches_js_poseidon = npkFromProof === npkExpected;
+    const nullifier_matches_js_poseidon =
+      nullifierFromProof === nullifierExpected;
 
-    console.log(JSON.stringify({ verified, npk_matches_js_poseidon }));
+    console.log(
+      JSON.stringify({
+        verified,
+        npk_matches_js_poseidon,
+        nullifier_matches_js_poseidon,
+      }),
+    );
     process.exit(0);
   }
 

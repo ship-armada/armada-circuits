@@ -41,7 +41,6 @@ template TransactOwned(N, M) {
 
   // ── Private witness: token ──────────────────────────────────
   signal input token;
-  signal input nullifyingKey;
 
   // ── Private witness: input notes (×N) ──────────────────────
   signal input randomIn[N];
@@ -87,9 +86,13 @@ template TransactOwned(N, M) {
     // Root must match public merkleRoot
     merkleRoot === merkleProofs[i].root;
 
-    // 1d. Derive nullifier: nullifier = Poseidon(nullifyingKey, leafIndex)
+    // 1d. Derive nullifier: nullifier = Poseidon(ownerField, leafIndex).
+    // ownerField replaces a free nullifyingKey, so the nullifier is
+    // deterministic per (owner, note): the commitment already binds
+    // ownerField through npk, so the spender cannot re-choose the
+    // nullifier to spend the same owned note twice.
     nullifierHashes[i] = Poseidon(2);
-    nullifierHashes[i].inputs[0] <== nullifyingKey;
+    nullifierHashes[i].inputs[0] <== ownerField;
     nullifierHashes[i].inputs[1] <== leavesIndices[i];
     nullifiers[i] === nullifierHashes[i].out;
   }
