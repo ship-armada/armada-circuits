@@ -7,7 +7,7 @@ pragma circom 2.0.0;
  *
  * Proves that a shielded transaction:
  *   1. Spends only notes owned by the prover (valid Merkle membership + NPK derivation)
- *   2. Does not double-spend (nullifiers correctly derived)
+ *   2. Does not double-spend (nullifiers correctly derived + input notes are distinct)
  *   3. Conserves value (sum of inputs == sum of outputs)
  *   4. Creates well-formed output commitments
  *   5. Is authorized by an EdDSA signature over boundParamsHash
@@ -28,6 +28,7 @@ pragma circom 2.0.0;
 include "../../node_modules/circomlib/circuits/poseidon.circom";
 include "../../node_modules/circomlib/circuits/eddsaposeidon.circom";
 include "../../node_modules/circomlib/circuits/bitify.circom";
+include "../../node_modules/circomlib/circuits/comparators.circom";
 include "../lib/merkle.circom";
 
 template Transact(N, M) {
@@ -113,7 +114,9 @@ template Transact(N, M) {
 
   // 4. Value conservation: sum(inputs) == sum(outputs)
   // Values are constrained to < 2^120 to prevent modular arithmetic exploits.
-  // Shield enforces max uint80 on-chain; 120 bits gives headroom for sums.
+  // Shield caps note values at uint120 on-chain; worst-case sum (8 x 2^120)
+  // stays far below the BN254 scalar field (~2^254), so the equality check
+  // below holds over the integers, not just mod p.
   component valueInRange[N];
   for (var i = 0; i < N; i++) {
     valueInRange[i] = Num2Bits(120);
@@ -138,6 +141,24 @@ template Transact(N, M) {
   sumIn <== accIn;
   sumOut <== accOut;
   sumIn === sumOut;
+
+  // 4b. Input notes must be distinct: no leaf index may appear twice.
+  // Without this, the same note could be passed as two inputs and its value
+  // counted twice toward sumIn (defense in depth — the verifier contract
+  // also rejects duplicate nullifiers when marking them spent).
+  if (N > 1) {
+    component indexEq[N * (N - 1) / 2];
+    var pair = 0;
+    for (var i = 0; i < N; i++) {
+      for (var j = i + 1; j < N; j++) {
+        indexEq[pair] = IsEqual();
+        indexEq[pair].in[0] <== leavesIndices[i];
+        indexEq[pair].in[1] <== leavesIndices[j];
+        indexEq[pair].out === 0;
+        pair++;
+      }
+    }
+  }
 
   // 5. Compute the message hash that the EdDSA signature covers.
   // The SDK signs: Poseidon(merkleRoot, boundParamsHash, ...nullifiers, ...commitmentsOut)
