@@ -11,9 +11,12 @@
 |---|---------|----------|--------|
 | 1 | Missing value range checks (potential modular overflow) | **Medium** | **Fixed** (`Num2Bits(120)` on every input and output value, Transact.circom) |
 | 2 | No in-circuit duplicate nullifier check (same note spent twice) | **Low** | **Fixed** (pairwise-distinct `leavesIndices`, Transact.circom; on-chain check retained) |
-| 3 | boundParamsHash not recomputed in-circuit | **Informational** | By design |
+| 3 | boundParamsHash not recomputed in-circuit | **Informational** | By design (verified: recomputed on-chain) |
 | 4 | No range check on npkOut values | **Low** | Acceptable |
 | 5 | Merkle depth hardcoded to 16 | **Informational** | By design |
+| 6 | EdDSA signature malleability (`S` vs `S + l`) | **None** | Not present (verified: circomlib enforces `S < l`) |
+| 7 | Verification keys are owner-set with no on-chain VK/circuit correspondence check | **Low** | Operational: use multisig/timelock owner |
+| 8 | `testingMode` / `VERIFICATION_BYPASS` proof-verification bypasses in verifier contracts | **Critical if enabled** | Testnet-only; MUST be removed before production |
 
 ## Findings
 
@@ -60,9 +63,9 @@ The value of that note would then count twice toward `sumIn`, so a proof spendin
 
 **Location:** `Transact.circom` line 37
 
-`boundParamsHash` is a pass-through public input. The circuit does not verify that it matches the `boundParams` struct. Instead, the on-chain `VerifierModule.verify()` recomputes `hashBoundParams` from the transaction's `boundParams` field.
+`boundParamsHash` is a pass-through public input. The circuit does not verify that it matches the `boundParams` struct. Instead, the on-chain verifier recomputes it from the transaction's `boundParams` field.
 
-**Risk:** None — the on-chain check is authoritative. If the prover submits a mismatched hash, the verifier rejects it.
+**Risk:** None — the on-chain check is authoritative (verified: armada-poc `PrivacyPool.sol` builds public input 1 as `keccak256(abi.encode(boundParams)) % SNARK_SCALAR_FIELD` from the submitted struct, the same formula as `VerifierModule.hashBoundParams`; a caller-supplied hash is never accepted). If the prover submits a mismatched hash, the verifier rejects it.
 
 ### 4. No Range Check on npkOut (Low)
 
@@ -78,7 +81,29 @@ Output note public keys (`npkOut[j]`) are private witness inputs with no range c
 
 The Merkle tree depth is hardcoded to 16 (65536 leaves max). This matches the on-chain MerkleModule configuration. Changing the depth would require recompiling all circuits and redeploying verification keys.
 
-### 6. Merkle Proof Implementation (Verified Correct)
+### 6. EdDSA Signature Malleability (Not Present)
+
+**Location:** `node_modules/circomlib/circuits/eddsaposeidon.circom` lines 40-51
+
+A Schnorr-style EdDSA verifier that only bounds `S < 2^253` would accept `(R8, S + l)` for any valid `(R8, S)` (where `l` is the BabyJubJub subgroup order, ~2^251), letting anyone produce a second valid signature without the private key. circomlib's `EdDSAPoseidonVerifier` does not have this weakness: after `Num2Bits(253)` it applies `CompConstant(l - 1)` and constrains `compConstant.out * enabled === 0`, so `S < l` is enforced (`Transact.circom` sets `enabled <== 1`).
+
+**Verified:** on a 2x2 build, a valid signature proves and verifies, while the same signature with `S + l` (which still fits in 253 bits) is rejected at `eddsaposeidon.circom:51`.
+
+**Risk:** None. Even if it were present, malleating the signature changes no public input — the nullifiers are identical, so on-chain replay protection would still reject a second spend.
+
+### 7. Owner-Set Verification Keys (Low, Operational)
+
+`setVerificationKey` (armada-poc `PrivacyPool.sol` / `VerifierModule.sol`) is owner-only, and the contract cannot verify that an uploaded VK actually corresponds to these circuits. A compromised owner key could register a VK for a malicious circuit and drain the pool.
+
+**Recommendation:** Put the owner behind a multisig and/or timelock before production, and pin expected VK hashes in the deployment checklist (see armada-poc #406).
+
+### 8. Proof-Verification Bypass Switches (Critical if enabled — testnet only)
+
+armada-poc `PrivacyPool.sol` (the live verification path), `VerifierModule.sol` (which sets the flag) and `Verifier.sol` contain POC-only bypasses that make verification return `true` unconditionally: the `testingMode` flag and `tx.origin == VERIFICATION_BYPASS`. With verification disabled, an attacker can submit an arbitrary `unshieldPreimage` plus its hash as the last commitment and withdraw funds they never deposited — the pool can be drained in one transaction.
+
+**Status:** Tolerated on testnet (user decision, 2026-07-27). **MUST be removed before production** — delete the code paths entirely rather than relying on flag values, and assert their absence in the deployment checklist.
+
+### 9. Merkle Proof Implementation (Verified Correct)
 
 **Location:** `src/lib/merkle.circom`
 
@@ -87,15 +112,15 @@ The Merkle proof verifier uses a standard binary tree construction:
 - `deltaLR[i] = bit * (sibling - current)` — single constraint per level
 - Hash chaining: `Poseidon(left, right)` from leaf to root
 
-This is the standard Tornado Cash / Railgun pattern. Verified correct.
+This is the standard shielded-pool Merkle membership construction. Verified correct.
 
-### 7. EdDSA Verification (Verified Correct)
+### 10. EdDSA Verification (Verified Correct)
 
 **Location:** `Transact.circom` lines 177-185
 
 Uses circomlib's `EdDSAPoseidonVerifier` — well-audited and standard. The message hash `Poseidon(merkleRoot, boundParamsHash, ...nullifiers, ...commitmentsOut)` binds all public inputs to the signature.
 
-### 8. Signature Binding to All Public Inputs (Verified Correct)
+### 11. Signature Binding to All Public Inputs (Verified Correct)
 
 The EdDSA message hash includes all public signals: `merkleRoot`, `boundParamsHash`, all `nullifiers`, and all `commitmentsOut`. This prevents:
 - Merkle root swapping (would invalidate signature)
@@ -104,4 +129,4 @@ The EdDSA message hash includes all public signals: `merkleRoot`, `boundParamsHa
 
 ## Conclusion
 
-The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; the remaining findings are acceptable or by design.
+The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; finding 6 does not apply; the remaining items are accepted-by-design or operational (trusted-setup ceremony, owner key, bypass removal) and tracked in the production checklist.

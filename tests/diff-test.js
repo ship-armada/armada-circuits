@@ -190,6 +190,8 @@ async function main() {
   console.log(`\n  ${passed} passed, ${failed} failed`);
 
   if (failed > 0) process.exit(1);
+  // snarkjs keeps worker handles open after fullProve/verify — exit explicitly
+  process.exit(0);
 }
 
 main().catch(err => {
