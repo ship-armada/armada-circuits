@@ -1,0 +1,76 @@
+# ABOUTME: Tooling CI: compiles every circuit, builds UNSAFE dev keys, then runs lint and tests.
+# ABOUTME: Runs on pushes to main and on pull requests, with a read-only token and no secrets.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      CIRCOM_VERSION: v2.2.3
+      CIRCOM_SHA256: 85342c7ff332d948df7c0c50ecf201e6129349aef550ce873f3c811b79fe53a3
+      CIRCOMSPECT_VERSION: 0.9.0
+      # Hermez perpetual Powers of Tau, power 17 (pinned hash; see docs/SECURITY_REVIEW.md)
+      PTAU_URL: https://circom.info/powersOfTau28_hez_final_17.ptau
+      PTAU_SHA256: 6b662a324867139fb1a20a324d90b6ff61856dfb23f59326909f14b0e2483ae0
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install circom
+        run: |
+          curl -fsSL -o /tmp/circom "https://github.com/iden3/circom/releases/download/${CIRCOM_VERSION}/circom-linux-amd64"
+          echo "${CIRCOM_SHA256}  /tmp/circom" | sha256sum -c -
+          sudo install -m 0755 /tmp/circom /usr/local/bin/circom
+          circom --version
+
+      - name: Cache circomspect
+        id: circomspect-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cargo/bin/circomspect
+          key: circomspect-${{ env.CIRCOMSPECT_VERSION }}-${{ runner.os }}
+
+      - name: Install circomspect
+        if: steps.circomspect-cache.outputs.cache-hit != 'true'
+        run: cargo install circomspect --version "${CIRCOMSPECT_VERSION}" --locked
+
+      - run: npm ci
+
+      - name: Cache phase-1 ptau
+        id: ptau-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/ptau/pot17_final.ptau
+          key: ptau-${{ env.PTAU_SHA256 }}
+
+      - name: Fetch phase-1 ptau
+        if: steps.ptau-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p build/ptau
+          curl -fsSL -o build/ptau/pot17_final.ptau "${PTAU_URL}"
+
+      - name: Check phase-1 ptau hash
+        run: echo "${PTAU_SHA256}  build/ptau/pot17_final.ptau" | sha256sum -c -
+
+      - run: npm run compile
+      - run: npm run setup:dev
+      - run: npm test

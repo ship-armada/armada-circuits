@@ -9,6 +9,10 @@ ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$ROOT"
 
 echo "Running static analysis..."
+if ! command -v circomspect >/dev/null 2>&1; then
+  echo "circomspect not found. Install it with: cargo install circomspect --version 0.9.0 --locked" >&2
+  exit 1
+fi
 npm run lint:circom
 
 echo "Running tests..."
