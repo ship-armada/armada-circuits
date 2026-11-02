@@ -8,7 +8,7 @@
     "compile": "bash scripts/compile.sh",
     "setup:dev": "bash scripts/setup-dev.sh",
     "test": "bash scripts/test.sh",
-    "lint:circom": "circomspect src/**/*.circom || true",
+    "lint:circom": "node scripts/lint-circom.js",
     "clean": "rm -rf build/*"
   },
   "devDependencies": {

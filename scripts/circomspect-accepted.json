@@ -1,0 +1,10 @@
+{
+  "accepted": [
+    {
+      "rule": "CS0010",
+      "file": "src/lib/merkle.circom",
+      "code": "component idxBits = Num2Bits(depth);",
+      "reason": "False positive: Num2Bits(n) can alias only when n >= 254 (2^n > p). MerkleTreeProof is instantiated only as MerkleTreeProof(16) in Transact.circom, so the decomposition is unique. See docs/SECURITY_REVIEW.md finding 12."
+    }
+  ]
+}

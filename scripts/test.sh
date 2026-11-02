@@ -16,9 +16,10 @@ fi
 npm run lint:circom
 
 echo "Running tests..."
-# Each test needs build/<shape>/ artifacts from
-# `npm run compile && npm run setup:dev`, and exits non-zero on failure.
+# Each test exits non-zero on failure. All but lint-circom-test.js need
+# build/<shape>/ artifacts from `npm run compile && npm run setup:dev`.
 TESTS=(
+  "tests/lint-circom-test.js"
   "tests/diff-test.js"
   "tests/nullifier-uniqueness-test.js"
   "tests/eddsa-malleability-test.js"

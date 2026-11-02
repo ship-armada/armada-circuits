@@ -17,6 +17,7 @@
 | 6 | EdDSA signature malleability (`S` vs `S + l`) | **None** | Not present (verified: circomlib enforces `S < l`) |
 | 7 | Verification keys are owner-set with no on-chain VK/circuit correspondence check | **Low** | Operational: use multisig/timelock owner |
 | 8 | `testingMode` / `VERIFICATION_BYPASS` proof-verification bypasses in verifier contracts | **Critical if enabled** | Testnet-only; MUST be removed before production |
+| 12 | circomspect CS0010: `Num2Bits(depth)` in `MerkleTreeProof` | **Informational** | False positive (`depth` is always 16); accepted in `scripts/circomspect-accepted.json` |
 
 ## Findings
 
@@ -127,6 +128,18 @@ The EdDSA message hash includes all public signals: `merkleRoot`, `boundParamsHa
 - Nullifier substitution (would invalidate signature)
 - Commitment tampering (would invalidate signature)
 
+### 12. Static Analysis — circomspect 0.9.0
+
+`npm test` runs circomspect over `src/lib`, `src/operations` and `src/main` via `scripts/lint-circom.js`, which fails on any finding not listed in `scripts/circomspect-accepted.json` (each entry carries a reason) and on accepted entries that are no longer reported.
+
+**Warning level (enforced):** one finding.
+- **CS0010** at `src/lib/merkle.circom` (`component idxBits = Num2Bits(depth);`): `Num2Bits` may alias. False positive: `Num2Bits(n)` can alias only when `n >= 254`, because only then can `sum(b_i * 2^i)` exceed p. `MerkleTreeProof` is instantiated only as `MerkleTreeProof(16)` (`Transact.circom`), so each leaf index has exactly one 16-bit decomposition. circomspect flags it because it cannot resolve the template parameter; the constant-width `Num2Bits(120)` checks in `Transact.circom` are not flagged.
+
+**Info level (reviewed, not enforced):** 40 notes of two kinds, CS0003 (comparisons with values > p/2) and CS0004 (field arithmetic could overflow).
+- Most are compile-time index and size arithmetic on template parameters and loop variables (`i < N`, `i * 16 + j`, `2 + N + M`, `N * (N - 1) / 2`), which never approaches p.
+- `merkle.circom` path selection (`deltaLR[i] <== idxBits.out[i] * (pathElements[i] - levelHash[i])` and the two `levelHash[i] ± deltaLR[i]` inputs): exact field arithmetic by design; `idxBits.out[i]` is constrained to {0, 1}, so the result is either `current` or `sibling`.
+- `Transact.circom` value sums (`accIn += valueIn[i]`, `accOut += valueOut[j]`): overflow is finding 1, prevented by the `Num2Bits(120)` range checks (worst case `8 × 2^120 < p`).
+
 ## Conclusion
 
-The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; finding 6 does not apply; the remaining items are accepted-by-design or operational (trusted-setup ceremony, owner key, bypass removal) and tracked in the production checklist.
+The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; finding 6 does not apply; the circomspect findings (12) are reviewed and accepted with reasons; the remaining items are accepted-by-design or operational (trusted-setup ceremony, owner key, bypass removal) and tracked in the production checklist.

@@ -31,7 +31,7 @@ All 19 circuit shapes compile. UNSAFE single-contributor dev keys (`v0.1.0-dev`)
 - **circomlib** (GPL-3.0) — Poseidon, EdDSA, BabyJubJub, comparators primitives
 - **circom** compiler v2.2.3 (GPL-3.0 build tool)
 - **snarkjs** v0.7.6 (GPL-3.0 build tool)
-- **circomspect** v0.9.0 (static analysis, run by `npm test`; `cargo install circomspect --version 0.9.0 --locked`)
+- **circomspect** v0.9.0 (static analysis, run by `npm test`; `cargo install circomspect --version 0.9.0 --locked`). Any finding not listed with a reason in `scripts/circomspect-accepted.json` fails the run.
 
 ## Proving System
 
