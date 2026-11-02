@@ -87,7 +87,7 @@ The Merkle tree depth is hardcoded to 16 (65536 leaves max). This matches the on
 
 A Schnorr-style EdDSA verifier that only bounds `S < 2^253` would accept `(R8, S + l)` for any valid `(R8, S)` (where `l` is the BabyJubJub subgroup order, ~2^251), letting anyone produce a second valid signature without the private key. circomlib's `EdDSAPoseidonVerifier` does not have this weakness: after `Num2Bits(253)` it applies `CompConstant(l - 1)` and constrains `compConstant.out * enabled === 0`, so `S < l` is enforced (`Transact.circom` sets `enabled <== 1`).
 
-**Verified:** on a 2x2 build, a valid signature proves and verifies, while the same signature with `S + l` (which still fits in 253 bits) is rejected at `eddsaposeidon.circom:51`.
+**Verified:** `tests/eddsa-malleability-test.js` proves and verifies a valid 2x2 signature, then checks that the same signature with `S + l` (which still fits in 253 bits) is rejected by that assert. With the assert removed, the malleated signature produces a valid proof and the test fails.
 
 **Risk:** None. Even if it were present, malleating the signature changes no public input — the nullifiers are identical, so on-chain replay protection would still reject a second spend.
 
