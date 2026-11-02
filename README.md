@@ -57,7 +57,7 @@ See `docs/SPEC.md` for the full matrix and public-input layout.
 npm install
 npm run compile       # compile all circuit shapes
 npm run setup:dev     # generate dev ptau + zkey (unsafe — testing only)
-npm run test          # run differential tests
+npm run test          # run differential + negative tests (needs compile + setup:dev)
 ```
 
 ## Security

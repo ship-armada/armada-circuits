@@ -12,7 +12,26 @@ echo "Running static analysis..."
 npm run lint:circom
 
 echo "Running tests..."
-# Placeholder: once tests exist, run them here.
-# npx mocha tests/**/*.test.ts
+# Each test needs build/<shape>/ artifacts from
+# `npm run compile && npm run setup:dev`, and exits non-zero on failure.
+TESTS=(
+  "tests/diff-test.js"
+  "tests/nullifier-uniqueness-test.js"
+  "tests/eddsa-malleability-test.js"
+)
 
-echo "No tests implemented yet."
+failed=()
+for t in "${TESTS[@]}"; do
+  echo ""
+  echo "── $t"
+  if ! node "$t"; then
+    failed+=("$t")
+  fi
+done
+
+echo ""
+if [ ${#failed[@]} -gt 0 ]; then
+  echo "FAILED: ${failed[*]}"
+  exit 1
+fi
+echo "All ${#TESTS[@]} test files passed."

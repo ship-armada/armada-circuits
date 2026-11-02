@@ -28,7 +28,14 @@ const { buildEddsa, buildPoseidon } = require('circomlibjs');
 const BUILD = path.join(__dirname, '..', 'build', '2x2');
 const WASM = path.join(BUILD, 'main_2x2_js', 'main_2x2.wasm');
 const ZKEY = path.join(BUILD, 'final.zkey');
-const VKEY = require(path.join(BUILD, 'vkey.json'));
+const VKEY_PATH = path.join(BUILD, 'vkey.json');
+for (const [label, p] of [['WASM', WASM], ['ZKEY', ZKEY], ['VKEY', VKEY_PATH]]) {
+  if (!fs.existsSync(p)) {
+    console.error(`${label} not found: ${p}. Run 'npm run compile && npm run setup:dev' first.`);
+    process.exit(1);
+  }
+}
+const VKEY = require(VKEY_PATH);
 
 // Source line of the distinctness assert, so the test can check that the
 // attack is rejected by that constraint and not by some other failure.

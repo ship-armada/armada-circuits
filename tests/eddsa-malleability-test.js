@@ -27,7 +27,14 @@ const { buildEddsa, buildPoseidon } = require('circomlibjs');
 const BUILD = path.join(__dirname, '..', 'build', '2x2');
 const WASM = path.join(BUILD, 'main_2x2_js', 'main_2x2.wasm');
 const ZKEY = path.join(BUILD, 'final.zkey');
-const VKEY = require(path.join(BUILD, 'vkey.json'));
+const VKEY_PATH = path.join(BUILD, 'vkey.json');
+for (const [label, p] of [['WASM', WASM], ['ZKEY', ZKEY], ['VKEY', VKEY_PATH]]) {
+  if (!fs.existsSync(p)) {
+    console.error(`${label} not found: ${p}. Run 'npm run compile && npm run setup:dev' first.`);
+    process.exit(1);
+  }
+}
+const VKEY = require(VKEY_PATH);
 
 // BabyJubJub prime subgroup order
 const SUBGROUP_ORDER = 2736030358979909402780800718157159386076813972158567259200215660948447373041n;
