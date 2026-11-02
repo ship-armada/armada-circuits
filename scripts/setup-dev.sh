@@ -24,7 +24,7 @@ mkdir -p "$PTAU_DIR"
 
 # Phase 1: Powers of Tau (shared across all circuits)
 # Power 17 = 2^17 = 131072 constraints max. Covers all 19 shapes.
-# Largest shape (8x4) has ~92.6k constraints.
+# Largest shape (8x4) has ~94.2k constraints.
 POT_POWER=17
 POT_FILE="$PTAU_DIR/pot${POT_POWER}_final.ptau"
 

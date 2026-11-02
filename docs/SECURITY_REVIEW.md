@@ -1,4 +1,4 @@
-# Circuit Security Review (2026-07-06)
+# Circuit Security Review (2026-07-06, updated 2026-11-02)
 
 ## Scope
 - `src/operations/Transact.circom` — main circuit (parameterized N,M)
@@ -9,17 +9,20 @@
 
 | # | Finding | Severity | Status |
 |---|---------|----------|--------|
-| 1 | Missing value range checks (potential modular overflow) | **Medium** | Open |
-| 2 | No in-circuit duplicate nullifier check (same note spent twice) | **Low** | Mitigated on-chain |
-| 3 | boundParamsHash not recomputed in-circuit | **Informational** | By design |
+| 1 | Missing value range checks (potential modular overflow) | **Medium** | **Fixed** (`Num2Bits(120)` on every input and output value, Transact.circom) |
+| 2 | No in-circuit duplicate nullifier check (same note spent twice) | **Low** | **Fixed** (pairwise-distinct `leavesIndices`, Transact.circom; on-chain check retained) |
+| 3 | boundParamsHash not recomputed in-circuit | **Informational** | By design (verified: recomputed on-chain) |
 | 4 | No range check on npkOut values | **Low** | Acceptable |
 | 5 | Merkle depth hardcoded to 16 | **Informational** | By design |
+| 6 | EdDSA signature malleability (`S` vs `S + l`) | **None** | Not present (verified: circomlib enforces `S < l`) |
+| 7 | Verification keys are owner-set with no on-chain VK/circuit correspondence check | **Low** | Operational: use multisig/timelock owner |
+| 8 | `testingMode` / `VERIFICATION_BYPASS` proof-verification bypasses in verifier contracts | **Critical if enabled** | Testnet-only; MUST be removed before production |
 
 ## Findings
 
 ### 1. Missing Value Range Checks (Medium)
 
-**Location:** `Transact.circom` lines 113-126
+**Location:** `Transact.circom` lines 115-143
 
 The value conservation constraint uses field arithmetic:
 ```
@@ -30,7 +33,7 @@ sumIn === sumOut;
 
 Since circom signals are field elements (mod p, p ≈ 2^254), an attacker could theoretically construct values where `sumIn ≡ sumOut mod p` but `sumIn ≠ sumOut` in the integers. For example, if `sumIn = 100` and `sumOut = p + 100`, both are `100 mod p`.
 
-**Practical risk: LOW.** Input values come from valid on-chain notes created via `shield()`, which enforces max value of ~2^80 (uint80 in Solidity). With N ≤ 8 inputs, `sumIn ≤ 8 × 2^80 ≈ 2^83`, far below p ≈ 2^254. For the overflow to matter, the prover would need output values > 2^254, but the commitment `Poseidon(npkOut, token, valueOut)` is a public signal verified on-chain.
+**Practical risk: LOW.** Input values come from valid on-chain notes created via `shield()`, which stores note values as `uint120`. With N ≤ 8 inputs, `sumIn ≤ 8 × 2^120 = 2^123`, far below p ≈ 2^254. For the overflow to matter, the prover would need output values > 2^254, but the commitment `Poseidon(npkOut, token, valueOut)` is a public signal verified on-chain.
 
 **Recommendation:** Add explicit range checks for defense in depth:
 ```circom
@@ -41,27 +44,32 @@ for (var i = 0; i < N; i++) {
 }
 ```
 
+**Status: Fixed.** `Transact.circom` step 4 range-checks every `valueIn[i]` and `valueOut[j]` with `Num2Bits(120)`, so the equality `sumIn === sumOut` holds over the integers, not just mod p.
+
 ### 2. No In-Circuit Duplicate Nullifier Check (Low)
 
-**Location:** `Transact.circom` lines 95-99
+**Location:** `Transact.circom` lines 98-101 (nullifier derivation); fix in step 4b, lines 145-161
 
 If the same note (same leafIndex) is provided as two separate inputs, the circuit produces two identical nullifiers: `nullifiers[i] === nullifiers[j]`. The circuit does not enforce distinct nullifiers.
 
-**Mitigation:** `TransactModule.sol:328` checks `!nullifiers[treeNum][nullifier]` on-chain, rejecting double-spends. Additionally, the SDK's UTXO selection logic prevents selecting the same note twice.
+The value of that note would then count twice toward `sumIn`, so a proof spending one 100-token note twice could create 200 tokens of outputs. `tests/nullifier-uniqueness-test.js` builds exactly this proof and confirms it verifies without the fix.
 
-**Recommendation:** Acceptable as-is. The on-chain check is the right place for this.
+**Mitigation (layered):**
+1. **In-circuit:** step 4b constrains all `leavesIndices` pairwise distinct with `IsEqual`, so a proof that reuses a note cannot be generated. Distinct leaf indices imply distinct nullifiers, since every input uses the same `nullifyingKey` in `nullifier = Poseidon(nullifyingKey, leafIndex)`, and `MerkleTreeProof` constrains each leaf index to 16 bits, so two different values cannot address the same leaf. Cost: N(N−1)/2 comparisons, 56 constraints for 8x4.
+2. **On-chain:** armada-poc `TransactModule._accumulateAndNullify` checks and marks each nullifier inside the same loop, so a duplicate within one transaction reverts ("Note already spent"). This depends on the check and the mark staying in the same loop iteration; the in-circuit check removes that dependency.
+3. **SDK:** armada-sdk `planTransfer` selects each note at most once and never pads inputs to fit a shape.
 
 ### 3. boundParamsHash Not Recomputed In-Circuit (Informational)
 
-**Location:** `Transact.circom` line 35
+**Location:** `Transact.circom` line 37
 
-`boundParamsHash` is a pass-through public input. The circuit does not verify that it matches the `boundParams` struct. Instead, the on-chain `VerifierModule.verify()` recomputes `hashBoundParams` from the transaction's `boundParams` field.
+`boundParamsHash` is a pass-through public input. The circuit does not verify that it matches the `boundParams` struct. Instead, the on-chain verifier recomputes it from the transaction's `boundParams` field.
 
-**Risk:** None — the on-chain check is authoritative. If the prover submits a mismatched hash, the verifier rejects it.
+**Risk:** None — the on-chain check is authoritative (verified: armada-poc `PrivacyPool.sol` builds public input 1 as `keccak256(abi.encode(boundParams)) % SNARK_SCALAR_FIELD` from the submitted struct, the same formula as `VerifierModule.hashBoundParams`; a caller-supplied hash is never accepted). If the prover submits a mismatched hash, the verifier rejects it.
 
 ### 4. No Range Check on npkOut (Low)
 
-**Location:** `Transact.circom` lines 52, 104-111
+**Location:** `Transact.circom` lines 54, 104-112
 
 Output note public keys (`npkOut[j]`) are private witness inputs with no range check. They must be valid BabyJubJub curve points for the output commitment to be meaningful. However, since the commitment `Poseidon(npkOut[j], token, valueOut[j])` is a public signal verified on-chain, a malicious npkOut would produce a commitment that no one can later spend (the recipient's wallet wouldn't recognize it).
 
@@ -69,11 +77,33 @@ Output note public keys (`npkOut[j]`) are private witness inputs with no range c
 
 ### 5. Merkle Depth Hardcoded (Informational)
 
-**Location:** `Transact.circom` line 85
+**Location:** `Transact.circom` line 87
 
 The Merkle tree depth is hardcoded to 16 (65536 leaves max). This matches the on-chain MerkleModule configuration. Changing the depth would require recompiling all circuits and redeploying verification keys.
 
-### 6. Merkle Proof Implementation (Verified Correct)
+### 6. EdDSA Signature Malleability (Not Present)
+
+**Location:** `node_modules/circomlib/circuits/eddsaposeidon.circom` lines 40-51
+
+A Schnorr-style EdDSA verifier that only bounds `S < 2^253` would accept `(R8, S + l)` for any valid `(R8, S)` (where `l` is the BabyJubJub subgroup order, ~2^251), letting anyone produce a second valid signature without the private key. circomlib's `EdDSAPoseidonVerifier` does not have this weakness: after `Num2Bits(253)` it applies `CompConstant(l - 1)` and constrains `compConstant.out * enabled === 0`, so `S < l` is enforced (`Transact.circom` sets `enabled <== 1`).
+
+**Verified:** `tests/eddsa-malleability-test.js` proves and verifies a valid 2x2 signature, then checks that the same signature with `S + l` (which still fits in 253 bits) is rejected by that assert. With the assert removed, the malleated signature produces a valid proof and the test fails.
+
+**Risk:** None. Even if it were present, malleating the signature changes no public input — the nullifiers are identical, so on-chain replay protection would still reject a second spend.
+
+### 7. Owner-Set Verification Keys (Low, Operational)
+
+`setVerificationKey` (armada-poc `PrivacyPool.sol` / `VerifierModule.sol`) is owner-only, and the contract cannot verify that an uploaded VK actually corresponds to these circuits. A compromised owner key could register a VK for a malicious circuit and drain the pool.
+
+**Recommendation:** Put the owner behind a multisig and/or timelock before production, and pin expected VK hashes in the deployment checklist (see armada-poc #406).
+
+### 8. Proof-Verification Bypass Switches (Critical if enabled — testnet only)
+
+armada-poc `PrivacyPool.sol` (the live verification path), `VerifierModule.sol` (which sets the flag) and `Verifier.sol` contain POC-only bypasses that make verification return `true` unconditionally: the `testingMode` flag and `tx.origin == VERIFICATION_BYPASS`. With verification disabled, an attacker can submit an arbitrary `unshieldPreimage` plus its hash as the last commitment and withdraw funds they never deposited — the pool can be drained in one transaction.
+
+**Status:** Tolerated on testnet (user decision, 2026-07-27). **MUST be removed before production** — delete the code paths entirely rather than relying on flag values, and assert their absence in the deployment checklist.
+
+### 9. Merkle Proof Implementation (Verified Correct)
 
 **Location:** `src/lib/merkle.circom`
 
@@ -82,15 +112,15 @@ The Merkle proof verifier uses a standard binary tree construction:
 - `deltaLR[i] = bit * (sibling - current)` — single constraint per level
 - Hash chaining: `Poseidon(left, right)` from leaf to root
 
-This is the standard Tornado Cash / Railgun pattern. Verified correct.
+This is the standard shielded-pool Merkle membership construction. Verified correct.
 
-### 7. EdDSA Verification (Verified Correct)
+### 10. EdDSA Verification (Verified Correct)
 
-**Location:** `Transact.circom` lines 142-150
+**Location:** `Transact.circom` lines 177-185
 
 Uses circomlib's `EdDSAPoseidonVerifier` — well-audited and standard. The message hash `Poseidon(merkleRoot, boundParamsHash, ...nullifiers, ...commitmentsOut)` binds all public inputs to the signature.
 
-### 8. Signature Binding to All Public Inputs (Verified Correct)
+### 11. Signature Binding to All Public Inputs (Verified Correct)
 
 The EdDSA message hash includes all public signals: `merkleRoot`, `boundParamsHash`, all `nullifiers`, and all `commitmentsOut`. This prevents:
 - Merkle root swapping (would invalidate signature)
@@ -99,4 +129,4 @@ The EdDSA message hash includes all public signals: `merkleRoot`, `boundParamsHa
 
 ## Conclusion
 
-The circuit is sound. The primary finding (missing value range checks) is low practical risk due to on-chain value bounds but should be addressed for defense in depth before production.
+The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; finding 6 does not apply; the remaining items are accepted-by-design or operational (trusted-setup ceremony, owner key, bypass removal) and tracked in the production checklist.

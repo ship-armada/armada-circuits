@@ -70,6 +70,10 @@ nullifier = Poseidon(nullifyingKey, leafIndex)
 
 The nullifier is revealed publicly. The contract stores spent nullifiers to prevent double-spends.
 
+### 2b. Input Note Distinctness
+
+All `leavesIndices` within one proof must be pairwise distinct (`IsEqual` constrained to 0 for every pair). This prevents the same note from being passed as multiple inputs and its value counted multiple times toward `sumIn`. The contract additionally rejects duplicate nullifiers when marking them spent (defense in depth).
+
 ### 3. Ownership / Spend Authorization
 
 Each input note is signed with EdDSA over BabyJubJub. The public key used for verification is derived from the note owner's spending key.
