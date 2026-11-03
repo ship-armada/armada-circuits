@@ -4,7 +4,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { assertUrlAllowed, downloadToFile } from './http';
+import { assertUrlAllowed, downloadToFile, type DownloadOptions } from './http';
 import { runVerifyWorker, type VerifyResult } from './verify-worker';
 
 /** The Hermez power-17 ptau (D13): pinned hashes and known mirrors. */
@@ -15,15 +15,11 @@ export const HERMEZ_17 = {
   mirrors: ['https://circom.info/powersOfTau28_hez_final_17.ptau'],
 };
 
-export interface FetchPtauOptions {
+export interface FetchPtauOptions extends DownloadOptions {
   mirrors: string[];
   sha256: string;
   blake2b: string;
   dest: string;
-  /** Per-mirror download timeout. */
-  timeoutMs?: number;
-  /** Allow http:// mirrors; for tests against a local server only. */
-  allowHttp?: boolean;
 }
 
 export async function hashFile(file: string): Promise<{ sha256: string; blake2b: string }> {

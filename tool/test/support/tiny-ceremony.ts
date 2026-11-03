@@ -8,6 +8,7 @@ import { buildBn128 } from 'ffjavascript';
 import { powersOfTau } from 'snarkjs';
 import type { Manifest } from '../../src/manifest';
 import { sha256File } from '../../src/http';
+import { hashFile } from '../../src/ptau';
 import { newBaseZkey } from '../../src/snark';
 import type { FakeGitHub } from './fake-github';
 
@@ -46,7 +47,7 @@ export async function buildTinyCeremony(dir: string, gh: FakeGitHub, now: number
     requiredToolVersion: toolVersion,
     snarkjsVersion: '0.7.6',
     coordination: { repo: gh.repo, queueIssue: 1, officialReleaseTag: 'ceremony-zkeys' },
-    ptau: { sha256: await sha256File(ptau), blake2b: '0'.repeat(128), power: 8, mirrors: ['https://example.org/pot.ptau'] },
+    ptau: { ...(await hashFile(ptau)), power: 8, mirrors: ['https://example.org/pot.ptau'] },
     window: { opens: new Date(now - 30 * 86_400_000).toISOString(), closes: new Date(now + 30 * 86_400_000).toISOString() },
     beacon: { type: 'drand', chainHash: 'c'.repeat(64), round: 1, iterationsExp: 10 },
     policy: { minContributions: 0, minOutside: 0, minOutsideOrgs: 0, minByo: 0 },
