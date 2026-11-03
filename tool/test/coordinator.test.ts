@@ -219,3 +219,11 @@ test('release refuses an r1cs that does not match the manifest', async () => {
     tag: 'v1.0.1', outDir: path.join(root, 'release2'), r1csFor: () => wrong, wasmFor: () => wasm, ptauPath: ptau,
   }), /m1: r1cs .* does not match the manifest/);
 });
+
+test('init with a custom beacon delay picks the round that long after close', async () => {
+  const { manifest } = await init(coord(), {
+    circuits: [circuitFiles('m1')], ptauPath: ptau, ptauMirrors: ['https://example.org/pot8.ptau'],
+    opens: OPENS, closes: CLOSES, queueIssue: 1, toolVersion: TOOL, beaconDelayMs: 3600_000,
+  });
+  assert.equal(manifest.beacon.round, beaconRoundFor(CLOSES, 3600_000));
+});

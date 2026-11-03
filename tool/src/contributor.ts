@@ -28,7 +28,7 @@ import { newContributionProblems, readMpcParams, sameSecret, type ZkeyContributi
 
 export const MANIFEST_PATH = 'ceremony/manifest.json';
 export const PARTICIPANTS_PATH = 'ceremony/participants.json';
-export const DEFAULT_REPO = 'ship-armada/armada-circuits';
+export { DEFAULT_REPO } from './args';
 
 export interface ContributorDeps {
   gh: GitHub;

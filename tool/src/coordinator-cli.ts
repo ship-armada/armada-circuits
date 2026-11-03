@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { accept } from './accept';
-import { UsageError, parseCommandLine, type CommandSpec, type ParsedCommand } from './args';
+import { UsageError, defaultRepo, parseCommandLine, type CommandSpec, type ParsedCommand } from './args';
 import { DEFAULT_REPO, MANIFEST_PATH, PARTICIPANTS_PATH, loadManifest } from './contributor';
 import { addCircuit, announcementText, finalize, init, release, type CoordinatorDeps } from './coordinator';
 import { GhCli } from './github';
@@ -22,8 +22,10 @@ export const COORDINATOR_USAGE = `usage: npm run coordinator -- <command> [optio
 
 commands:
   init --opens <iso> --closes <iso> --queue-issue <n> [--ptau-mirrors <url,url>] [--release-tag <tag>]
-                                    build base zkeys for every ceremony circuit in circuits.json, upload
-                                    them, and write ceremony/manifest.json + participants.json
+       [--circuits <id,id,...>] [--policy <contributions,outside,orgs,byo>] [--beacon-delay-hours <h>]
+                                    build base zkeys for the ceremony circuits in circuits.json (or the
+                                    given subset), upload them, and write ceremony/manifest.json +
+                                    participants.json; defaults: policy 10,5,3,1, beacon 48 h after close
   add-circuit <id>                  add a circuits.json circuit as a new chain from the next turn on
   announce [--tag <name>]           print the commitment; --tag also creates a signed git tag with it
   accept <pr> [--reverify]          merge a contribution PR whose contribution check passed for its head,
@@ -37,10 +39,15 @@ commands:
 Commands that change the manifest write ceremony/manifest.json; commit it in a reviewed PR.
 
 options for every command:
-  --repo <owner/name>               ceremony repo (default ${DEFAULT_REPO})`;
+  --repo <owner/name>               ceremony repo (default $ARMADA_CEREMONY_REPO, else ${DEFAULT_REPO})`;
 
 const COMMANDS: Record<string, CommandSpec> = {
-  init: { options: { opens: { type: 'string' }, closes: { type: 'string' }, 'queue-issue': { type: 'string' }, 'ptau-mirrors': { type: 'string' }, 'release-tag': { type: 'string' } } },
+  init: {
+    options: {
+      opens: { type: 'string' }, closes: { type: 'string' }, 'queue-issue': { type: 'string' }, 'ptau-mirrors': { type: 'string' },
+      'release-tag': { type: 'string' }, circuits: { type: 'string' }, policy: { type: 'string' }, 'beacon-delay-hours': { type: 'string' },
+    },
+  },
   'add-circuit': { options: {}, positionals: 1 },
   announce: { options: { tag: { type: 'string' } } },
   accept: { options: { reverify: { type: 'boolean' } }, positionals: 1 },
@@ -50,12 +57,17 @@ const COMMANDS: Record<string, CommandSpec> = {
 };
 
 export function parseCoordinatorCommand(argv: string[]): ParsedCommand {
-  const cmd = parseCommandLine(argv, COMMANDS, DEFAULT_REPO);
+  const cmd = parseCommandLine(argv, COMMANDS, defaultRepo());
   if (cmd.command === 'accept' && !/^[1-9]\d*$/.test(cmd.positionals[0])) throw new UsageError(`accept takes a PR number, got ${cmd.positionals[0]}`);
   if (cmd.command === 'init') {
     for (const f of ['opens', 'closes', 'queue-issue']) if (typeof cmd.flags[f] !== 'string') throw new UsageError(`init needs --${f}`);
     for (const f of ['opens', 'closes']) if (Number.isNaN(Date.parse(cmd.flags[f] as string))) throw new UsageError(`--${f} must be an ISO 8601 time`);
     if (!/^[1-9]\d*$/.test(cmd.flags['queue-issue'] as string)) throw new UsageError('--queue-issue must be an issue number');
+    if (cmd.flags.policy !== undefined && !/^\d+,\d+,\d+,\d+$/.test(cmd.flags.policy as string)) {
+      throw new UsageError('--policy must be four non-negative integers: contributions,outside,organisations,byo');
+    }
+    const delay = cmd.flags['beacon-delay-hours'];
+    if (delay !== undefined && !(Number(delay) > 0)) throw new UsageError('--beacon-delay-hours must be a positive number');
   }
   if (cmd.command === 'release' && typeof cmd.flags.tag !== 'string') throw new UsageError('release needs --tag');
   return cmd;
@@ -82,14 +94,22 @@ async function run(argv: string[]): Promise<number> {
   switch (cmd.command) {
     case 'init': {
       if (fs.existsSync(path.join(ROOT, MANIFEST_PATH))) throw new Error(`${MANIFEST_PATH} already exists; init starts a new ceremony only`);
-      const circuits = ceremonyCircuits(reg).map((c) => ({ id: c.id, r1cs: artifactPaths(ROOT, c).r1cs, wasm: artifactPaths(ROOT, c).wasm }));
-      const powers = [...new Set(ceremonyCircuits(reg).map((c) => c.ptauPower))];
+      const subset = typeof cmd.flags.circuits === 'string' ? (cmd.flags.circuits as string).split(',').filter((x) => x !== '') : [];
+      for (const id of subset) if (!circuitById(reg, id).ceremony) throw new Error(`circuit ${id} is not a ceremony circuit in circuits.json`);
+      const chosen = ceremonyCircuits(reg).filter((c) => subset.length === 0 || subset.includes(c.id));
+      const circuits = chosen.map((c) => ({ id: c.id, r1cs: artifactPaths(ROOT, c).r1cs, wasm: artifactPaths(ROOT, c).wasm }));
+      const powers = [...new Set(chosen.map((c) => c.ptauPower))];
+      const policyNumbers = typeof cmd.flags.policy === 'string' ? (cmd.flags.policy as string).split(',').map(Number) : undefined;
       if (powers.length !== 1) throw new Error(`ceremony circuits need one ptau power, found ${powers.join(', ')}`);
       const { manifest, participants: people } = await init(deps, {
         circuits, ptauPath: ptauFor(powers[0]), opens: cmd.flags.opens as string, closes: cmd.flags.closes as string,
         queueIssue: Number(cmd.flags['queue-issue']), toolVersion: TOOL_VERSION,
         ptauMirrors: typeof cmd.flags['ptau-mirrors'] === 'string' ? (cmd.flags['ptau-mirrors'] as string).split(',').filter((u) => u !== '') : undefined,
         releaseTag: cmd.flags['release-tag'] as string | undefined,
+        policy: policyNumbers
+          ? { minContributions: policyNumbers[0], minOutside: policyNumbers[1], minOutsideOrgs: policyNumbers[2], minByo: policyNumbers[3] }
+          : undefined,
+        beaconDelayMs: cmd.flags['beacon-delay-hours'] !== undefined ? Number(cmd.flags['beacon-delay-hours']) * 3600_000 : undefined,
       });
       fs.mkdirSync(path.join(ROOT, 'ceremony'), { recursive: true });
       fs.writeFileSync(path.join(ROOT, PARTICIPANTS_PATH), `${JSON.stringify(people, null, 2)}\n`);

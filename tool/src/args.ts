@@ -5,6 +5,13 @@ import { parseArgs } from 'node:util';
 
 export class UsageError extends Error {}
 
+export const DEFAULT_REPO = 'ship-armada/armada-circuits';
+
+/** Ceremony repo used when --repo is not given: $ARMADA_CEREMONY_REPO, else DEFAULT_REPO. */
+export function defaultRepo(): string {
+  return process.env.ARMADA_CEREMONY_REPO || DEFAULT_REPO;
+}
+
 export interface ParsedCommand {
   command: string;
   repo: string;

@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import readline from 'node:readline';
-import { UsageError, parseCommandLine, type CommandSpec, type ParsedCommand } from './args';
+import { UsageError, defaultRepo, parseCommandLine, type CommandSpec, type ParsedCommand } from './args';
 import { DEFAULT_REPO, contribute, loadManifest, submit, type ContributeOutcome, type ContributorDeps } from './contributor';
 import { doctor, systemProbes } from './doctor';
 import { GhCli } from './github';
@@ -32,7 +32,7 @@ commands:
   help                              show this help
 
 options for every command:
-  --repo <owner/name>               ceremony repo (default ${DEFAULT_REPO})`;
+  --repo <owner/name>               ceremony repo (default $ARMADA_CEREMONY_REPO, else ${DEFAULT_REPO})`;
 
 export const EXIT = { ok: 0, error: 1, usage: 2, held: 3 } as const;
 export { UsageError };
@@ -47,7 +47,7 @@ const COMMANDS: Record<string, CommandSpec> = {
 };
 
 export function parseCommand(argv: string[]): ParsedCommand {
-  return parseCommandLine(argv, COMMANDS, DEFAULT_REPO);
+  return parseCommandLine(argv, COMMANDS, defaultRepo());
 }
 
 /** Read a line from the terminal without echoing it. */

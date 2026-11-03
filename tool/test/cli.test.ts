@@ -59,3 +59,25 @@ test('coordinator command line: init, release and add-circuit arguments', () => 
   assert.equal(parseCoordinatorCommand(['add-circuit', 'disclosure']).positionals[0], 'disclosure');
   assert.equal(parseCoordinatorCommand(['release', '--tag', 'v1.0.0', '--publish']).flags.publish, true);
 });
+
+test('coordinator init accepts rehearsal options: circuit subset, policy and beacon delay', () => {
+  const base = ['init', '--opens', '2027-01-01T00:00:00Z', '--closes', '2027-01-04T00:00:00Z', '--queue-issue', '1'];
+  const c = parseCoordinatorCommand([...base, '--circuits', '1x1,1x2,2x2', '--policy', '3,0,0,1', '--beacon-delay-hours', '1']);
+  assert.equal(c.flags.circuits, '1x1,1x2,2x2');
+  assert.throws(() => parseCoordinatorCommand([...base, '--policy', '3,0,0']), /--policy must be four non-negative integers/);
+  assert.throws(() => parseCoordinatorCommand([...base, '--policy', '3,0,-1,1']), /--policy must be four non-negative integers/);
+  assert.throws(() => parseCoordinatorCommand([...base, '--beacon-delay-hours', 'soon']), /--beacon-delay-hours must be a positive number/);
+});
+
+test('ARMADA_CEREMONY_REPO sets the default repo for both command lines; --repo still wins', () => {
+  const saved = process.env.ARMADA_CEREMONY_REPO;
+  process.env.ARMADA_CEREMONY_REPO = 'ship-armada/armada-circuits-ceremony-test';
+  try {
+    assert.equal(parseCommand(['status']).repo, 'ship-armada/armada-circuits-ceremony-test');
+    assert.equal(parseCoordinatorCommand(['accept', '3']).repo, 'ship-armada/armada-circuits-ceremony-test');
+    assert.equal(parseCommand(['status', '--repo', 'o/r']).repo, 'o/r');
+  } finally {
+    if (saved === undefined) delete process.env.ARMADA_CEREMONY_REPO;
+    else process.env.ARMADA_CEREMONY_REPO = saved;
+  }
+});

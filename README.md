@@ -69,7 +69,8 @@ npm run test        # static analysis, tooling unit tests, differential + negati
 ## Trusted-setup ceremony
 
 Production keys will come from a public multi-party ceremony, run with the
-tooling in `tool/` (not started yet; the full contributor guide comes with it).
+tooling in `tool/` (not started yet). Contributor guide, coordinator runbook and
+verifier guide: `docs/CEREMONY.md`.
 Contributors need Node >= 22 and a logged-in GitHub CLI (`gh` >= 2.48):
 
 ```bash

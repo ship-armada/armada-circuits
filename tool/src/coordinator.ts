@@ -80,8 +80,9 @@ export interface InitOptions {
   toolVersion: string;
   releaseTag?: string;
   policy?: Manifest['policy'];
-  /** Defaults to the first quicknet round BEACON_DELAY_MS after `closes`. */
+  /** Defaults to the first quicknet round `beaconDelayMs` (default BEACON_DELAY_MS) after `closes`. */
   beaconRound?: number;
+  beaconDelayMs?: number;
 }
 
 /** `init`: base zkeys for every circuit (uploaded to the official release) and the starting manifest. */
@@ -102,7 +103,7 @@ export async function init(deps: CoordinatorDeps, o: InitOptions): Promise<{ man
     coordination: { repo: deps.repo, queueIssue: o.queueIssue, officialReleaseTag: tag },
     ptau: { ...hashes, power: await ptauPower(o.ptauPath), mirrors },
     window: { opens: o.opens, closes: o.closes },
-    beacon: { type: 'drand', chainHash: QUICKNET.hash, round: o.beaconRound ?? beaconRoundFor(o.closes), iterationsExp: BEACON_ITERATIONS_EXP },
+    beacon: { type: 'drand', chainHash: QUICKNET.hash, round: o.beaconRound ?? beaconRoundFor(o.closes, o.beaconDelayMs ?? BEACON_DELAY_MS), iterationsExp: BEACON_ITERATIONS_EXP },
     policy: o.policy ?? DEFAULT_POLICY,
     circuits,
   });
