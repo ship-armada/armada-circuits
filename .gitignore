@@ -7,3 +7,4 @@ build/
 *.sym
 dist/
 !tool/assets/practice/*
+.ceremony-work/

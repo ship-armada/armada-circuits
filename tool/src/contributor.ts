@@ -72,7 +72,15 @@ const pad = (n: number) => String(n).padStart(4, '0');
 const iso = (ms: number) => new Date(ms).toISOString();
 
 export async function loadManifest(deps: ContributorDeps): Promise<Manifest> {
-  return parseManifest(JSON.parse(await deps.gh.readDefaultBranchFile(deps.repo, MANIFEST_PATH)));
+  let text: string;
+  try {
+    text = await deps.gh.readDefaultBranchFile(deps.repo, MANIFEST_PATH);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/404|Not Found/.test(msg)) throw new Error(`${deps.repo} has no ${MANIFEST_PATH} on its default branch; the ceremony has not been set up yet`);
+    throw new Error(`could not read ${MANIFEST_PATH} from ${deps.repo}: ${msg}`);
+  }
+  return parseManifest(JSON.parse(text));
 }
 
 function openCircuits(m: Manifest): string[] {

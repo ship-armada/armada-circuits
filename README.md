@@ -66,6 +66,22 @@ npm run test        # static analysis, tooling unit tests, differential + negati
                     # (circuit tests need compile + setup:dev for 1x1 1x2 2x2 3x2)
 ```
 
+## Trusted-setup ceremony
+
+Production keys will come from a public multi-party ceremony, run with the
+tooling in `tool/` (not started yet; the full contributor guide comes with it).
+Contributors need Node >= 22 and a logged-in GitHub CLI (`gh` >= 2.48):
+
+```bash
+npm run ceremony -- doctor        # check this machine; runs a practice contribution
+npm run ceremony -- status        # who holds the turn, and your contributions
+npm run ceremony -- contribute    # claim the turn and contribute (add --wait to wait for it)
+npm run ceremony -- verify --mine # confirm your contribution is in every circuit
+```
+
+Bring-your-own-tool contributions: `contribute --download-only`, contribute with
+any compatible implementation, then `submit <turn.json> <zkey-dir>`.
+
 ## Security
 
 This repo contains production-intent circuit sources. All changes require review, differential testing against reference test vectors, and formal/static analysis before any artifact is used on mainnet.

@@ -37,7 +37,7 @@ export type GhRunner = (args: string[], input?: string) => Promise<string>;
 const defaultRunner: GhRunner = (args, input) =>
   new Promise((resolve, reject) => {
     const child = execFile('gh', args, { maxBuffer: 64 * 1024 * 1024 }, (err, stdout, stderr) => {
-      if (err) reject(new Error(`gh ${args.slice(0, 3).join(' ')} failed: ${stderr.trim() || err.message}`));
+      if (err) reject(new Error(`gh ${args.slice(0, 2).join(' ')} failed: ${stderr.trim() || err.message}`));
       else resolve(stdout);
     });
     if (input !== undefined) child.stdin?.end(input);

@@ -135,6 +135,12 @@ test('refuses a tool version other than the required one, before claiming', asyn
   assert.equal(gh.comments.length, 0);
 });
 
+test('a repo without a ceremony manifest gets a clear error', async () => {
+  gh.files.delete('ceremony/manifest.json');
+  gh.user = 'dave';
+  await assert.rejects(contribute(deps()), /test-org\/test-repo has no ceremony\/manifest\.json on its default branch; the ceremony has not been set up yet/);
+});
+
 test('refuses outside the contribution window', async () => {
   gh.user = 'dave';
   await assert.rejects(contribute(deps({ now: () => clock + 60 * 86_400_000 })), /the contribution window closed/);

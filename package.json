@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build",
     "test": "bash scripts/test.sh",
+    "ceremony": "node dist/src/cli.js",
     "lint:circom": "node scripts/lint-circom.js",
     "clean": "rm -rf build/* dist"
   },
@@ -30,5 +31,8 @@
     "@noble/hashes": "1.8.0",
     "ffjavascript": "0.3.1",
     "snarkjs": "0.7.6"
+  },
+  "bin": {
+    "armada-ceremony": "dist/src/cli.js"
   }
 }
