@@ -95,6 +95,9 @@ the committed drand round as the beacon, full verify, verifying keys) and
 `TRANSCRIPT.md`). Commands that change the manifest write `ceremony/manifest.json`
 for a reviewed PR.
 
+How the ceremony's verifying keys get into armada-poc, and how to check the
+registered keys are the ceremony's: `docs/ARMADA_POC_HANDOFF.md`.
+
 ## Security
 
 This repo contains production-intent circuit sources. All changes require review, differential testing against reference test vectors, and formal/static analysis before any artifact is used on mainnet.

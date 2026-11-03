@@ -194,6 +194,17 @@ test('release publishes every artifact with SHA256SUMS, a transcript and a VK bu
   const bundle = JSON.parse(fs.readFileSync(path.join(out, 'vkeys.json'), 'utf8'));
   assert.deepEqual(Object.keys(bundle.circuits).sort(), ['m1', 'm2', 'm3']);
   assert.equal(bundle.circuits.m1.vkeySha256, mainManifest().circuits.m1.final!.vkeySha256);
+  // The form docs/ARMADA_POC_HANDOFF.md promises to armada-poc's VK registration and check.
+  for (const id of ['m1', 'm2', 'm3']) {
+    const vk = bundle.circuits[id].vkey;
+    assert.deepEqual([vk.protocol, vk.curve], ['groth16', 'bn128']);
+    for (const k of ['vk_alpha_1', 'vk_beta_2', 'vk_gamma_2', 'vk_delta_2', 'IC']) assert.ok(k in vk, `${id} vkey lacks ${k}`);
+    assert.equal(vk.IC.length, vk.nPublic + 1);
+    assert.deepEqual(vk, JSON.parse(fs.readFileSync(path.join(out, `${id}.vkey.json`), 'utf8')), 'bundle entry is exactly the per-circuit vkey');
+    assert.equal(bundle.circuits[id].zkeySha256, mainManifest().circuits[id].final!.zkeySha256);
+  }
+  assert.equal(bundle.ceremony, REPO);
+  assert.equal(bundle.beacon.round, ROUND.round);
   const transcript = fs.readFileSync(path.join(out, 'TRANSCRIPT.md'), 'utf8');
   for (const s of ['@alice', '@bob', '@carol', 'https://example.org/carol', `round ${ROUND.round}`, 'Outside participants | 2', 'coordinator-checked']) {
     assert.ok(transcript.includes(s), `transcript is missing ${s}`);
