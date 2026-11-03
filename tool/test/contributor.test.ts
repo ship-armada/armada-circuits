@@ -104,7 +104,7 @@ test('the turn is held by another live claim: no claim is posted', async () => {
 });
 
 test('the turn is held by an open PR whose CI passed', async () => {
-  gh.prs.push({ number: 42, author: 'alice', createdAt: new Date(clock - 60_000).toISOString(), state: 'open', ci: 'success', branch: 'ceremony/turn-0001-alice', files: [], title: '', body: '' });
+  gh.prs.push({ number: 42, author: 'alice', createdAt: new Date(clock - 60_000).toISOString(), state: 'open', ci: 'success', branch: 'ceremony/turn-0001-alice', files: [], title: '', body: '', headSha: 'sha-42' });
   gh.user = 'dave';
   const o = await contribute(deps());
   assert.deepEqual(o, { kind: 'held', message: '@alice is contributing (PR #42, CI passed, waiting for a coordinator). Try again later, or rerun with --wait to start automatically.' });

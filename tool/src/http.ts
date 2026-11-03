@@ -4,7 +4,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
+import { Readable, Transform } from 'node:stream';
 import type { ReadableStream } from 'node:stream/web';
 import { pipeline } from 'node:stream/promises';
 
@@ -14,6 +14,8 @@ export interface DownloadOptions {
   allowHttp?: boolean;
   /** fetch implementation; tests inject one that serves local files. */
   fetch?: typeof fetch;
+  /** Abort a download larger than this many bytes (protects the disk from hostile URLs). */
+  maxBytes?: number;
 }
 
 export function assertUrlAllowed(url: string, opts: DownloadOptions = {}): void {
@@ -26,7 +28,21 @@ export async function downloadToFile(url: string, out: string, opts: DownloadOpt
   const res = await (opts.fetch ?? fetch)(url, { signal: AbortSignal.timeout(opts.timeoutMs ?? 60 * 60 * 1000) });
   if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
   fs.mkdirSync(path.dirname(out), { recursive: true });
-  await pipeline(Readable.fromWeb(res.body as ReadableStream), fs.createWriteStream(out));
+  const max = opts.maxBytes;
+  let seen = 0;
+  const limit = new Transform({
+    transform(chunk: Buffer, _enc, done) {
+      seen += chunk.length;
+      if (max !== undefined && seen > max) done(new Error(`download exceeds the ${max}-byte limit`));
+      else done(null, chunk);
+    },
+  });
+  try {
+    await pipeline(Readable.fromWeb(res.body as ReadableStream), limit, fs.createWriteStream(out));
+  } catch (err) {
+    fs.rmSync(out, { force: true });
+    throw err;
+  }
 }
 
 export async function sha256File(file: string): Promise<string> {

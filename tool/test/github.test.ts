@@ -85,3 +85,55 @@ test('openPullRequest builds the commit on the fork and opens the PR from owner:
   assert.deepEqual(body(/git\/refs --input/), { ref: 'refs/heads/ceremony/turn-0001-alice', sha: 'C1' });
   assert.deepEqual(body(/pulls --input/), { title: 'title', body: 'body', head: 'alice:ceremony/turn-0001-alice', base: 'main' });
 });
+
+test('getPullRequest maps state, author and head', async () => {
+  const gh = new GhCli(runner([[/pulls\/12$/, JSON.stringify({
+    number: 12, user: { login: 'alice' }, state: 'closed', merged_at: '2027-01-01', head: { ref: 'ceremony/turn-0001-alice', sha: 'abc', repo: { full_name: 'alice/armada-circuits' } },
+  })]]));
+  assert.deepEqual(await gh.getPullRequest('o/r', 12), {
+    number: 12, author: 'alice', state: 'merged', headRef: 'ceremony/turn-0001-alice', headSha: 'abc', headRepo: 'alice/armada-circuits',
+  });
+});
+
+test('listPullRequestFiles flattens pages of file names', async () => {
+  const gh = new GhCli(runner([[/pulls\/12\/files/, JSON.stringify([[{ filename: 'a' }], [{ filename: 'b' }]])]]));
+  assert.deepEqual(await gh.listPullRequestFiles('o/r', 12), ['a', 'b']);
+});
+
+test('readFileAtRef reads raw contents at a commit', async () => {
+  const calls: string[][] = [];
+  const gh = new GhCli(runner([[/contents\/ceremony\/manifest\.json\?ref=abc/, '{"x":1}']], calls));
+  assert.equal(await gh.readFileAtRef('alice/r', 'ceremony/manifest.json', 'abc'), '{"x":1}');
+  assert.ok(calls[0].includes('Accept: application/vnd.github.raw'));
+});
+
+test('listWorkflowRuns maps runs for a head commit', async () => {
+  const gh = new GhCli(runner([[/actions\/runs\?head_sha=abc/, JSON.stringify({ workflow_runs: [
+    { path: '.github/workflows/contribution-check.yml', event: 'pull_request_target', status: 'completed', conclusion: 'success', head_sha: 'abc' },
+  ] })]]));
+  assert.deepEqual(await gh.listWorkflowRuns('o/r', 'abc'), [
+    { path: '.github/workflows/contribution-check.yml', event: 'pull_request_target', status: 'completed', conclusion: 'success', headSha: 'abc' },
+  ]);
+});
+
+test('mergePullRequest pins the verified head commit', async () => {
+  const calls: string[][] = [];
+  const gh = new GhCli(runner([[/^pr merge/, '']], calls));
+  await gh.mergePullRequest('o/r', 12, 'abc');
+  assert.deepEqual(calls[0], ['pr', 'merge', '12', '--repo', 'o/r', '--merge', '--match-head-commit', 'abc']);
+});
+
+test('uploadToRelease creates the release when missing, otherwise uploads with --clobber', async () => {
+  const calls: string[][] = [];
+  let exists = false;
+  const gh = new GhCli(runner([
+    [/^release view/, () => { if (!exists) throw new Error('not found'); return '{}'; }],
+    [/^release create/, () => { exists = true; return ''; }],
+    [/^release upload/, ''],
+  ], calls));
+  const urls = await gh.uploadToRelease('o/r', 'ceremony-zkeys', ['/x/1x1-0001-alice.zkey'], 'notes');
+  assert.deepEqual(urls, { '1x1-0001-alice.zkey': 'https://github.com/o/r/releases/download/ceremony-zkeys/1x1-0001-alice.zkey' });
+  await gh.uploadToRelease('o/r', 'ceremony-zkeys', ['/x/2x2-0001-alice.zkey'], 'notes');
+  assert.deepEqual(calls.map((c) => c.slice(0, 2).join(' ')), ['release view', 'release create', 'release view', 'release upload']);
+  assert.ok(calls[3].includes('--clobber'));
+});

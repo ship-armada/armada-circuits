@@ -32,6 +32,38 @@ export interface GitHub {
   openPullRequest(repo: string, branch: string, files: RepoFile[], title: string, body: string): Promise<{ number: number; url: string }>;
 }
 
+export interface PullRequestInfo {
+  number: number;
+  author: string;
+  state: 'open' | 'merged' | 'closed';
+  headRef: string;
+  headSha: string;
+  /** Repo the head branch lives in (the contributor's fork). */
+  headRepo: string;
+}
+
+export interface WorkflowRun {
+  /** Workflow file, e.g. ".github/workflows/contribution-check.yml". */
+  path: string;
+  event: string;
+  status: string;
+  conclusion: string | null;
+  headSha: string;
+}
+
+/** Read-only PR access used by the CI check, plus the maintainer actions `accept` needs. */
+export interface MaintainerGitHub extends GitHub {
+  getPullRequest(repo: string, number: number): Promise<PullRequestInfo>;
+  listPullRequestFiles(repo: string, number: number): Promise<string[]>;
+  /** A file's contents at a commit (e.g. the PR head in the contributor's fork). */
+  readFileAtRef(repo: string, filePath: string, ref: string): Promise<string>;
+  listWorkflowRuns(repo: string, headSha: string): Promise<WorkflowRun[]>;
+  /** Upload files to a release in `repo` itself (created if missing); returns download URLs by basename. */
+  uploadToRelease(repo: string, tag: string, files: string[], notes: string): Promise<Record<string, string>>;
+  /** Merge a PR, but only if its head is still `headSha`. */
+  mergePullRequest(repo: string, number: number, headSha: string): Promise<void>;
+}
+
 export type GhRunner = (args: string[], input?: string) => Promise<string>;
 
 const defaultRunner: GhRunner = (args, input) =>
@@ -48,7 +80,7 @@ interface ApiPull { number: number; user: { login: string }; created_at: string;
 interface ApiCheckRun { status: string; conclusion: string | null }
 
 /** GitHub access through the `gh` CLI. `run` is injectable for tests. */
-export class GhCli implements GitHub {
+export class GhCli implements MaintainerGitHub {
   private login?: string;
 
   constructor(private readonly run: GhRunner = defaultRunner) {}
@@ -113,10 +145,45 @@ export class GhCli implements GitHub {
 
   async uploadToForkRelease(repo: string, tag: string, files: string[], notes: string): Promise<Record<string, string>> {
     const { fullName } = await this.fork(repo);
-    const exists = await this.run(['release', 'view', tag, '--repo', fullName, '--json', 'tagName']).then(() => true, () => false);
-    if (exists) await this.run(['release', 'upload', tag, ...files, '--repo', fullName, '--clobber']);
-    else await this.run(['release', 'create', tag, ...files, '--repo', fullName, '--title', tag, '--notes', notes]);
-    return Object.fromEntries(files.map((f) => [path.basename(f), `https://github.com/${fullName}/releases/download/${tag}/${path.basename(f)}`]));
+    return this.uploadToRelease(fullName, tag, files, notes);
+  }
+
+  async getPullRequest(repo: string, number: number): Promise<PullRequestInfo> {
+    const p = await this.api<ApiPull & { head: { repo: { full_name: string } | null } }>([`repos/${repo}/pulls/${number}`]);
+    return {
+      number: p.number,
+      author: p.user.login,
+      state: p.state === 'open' ? 'open' : p.merged_at ? 'merged' : 'closed',
+      headRef: p.head.ref,
+      headSha: p.head.sha,
+      headRepo: p.head.repo?.full_name ?? repo,
+    };
+  }
+
+  async listPullRequestFiles(repo: string, number: number): Promise<string[]> {
+    const pages = await this.api<{ filename: string }[][]>(['--paginate', '--slurp', `repos/${repo}/pulls/${number}/files?per_page=100`]);
+    return pages.flat().map((f) => f.filename);
+  }
+
+  async readFileAtRef(repo: string, filePath: string, ref: string): Promise<string> {
+    return this.run(['api', `repos/${repo}/contents/${filePath}?ref=${ref}`, '-H', 'Accept: application/vnd.github.raw']);
+  }
+
+  async listWorkflowRuns(repo: string, headSha: string): Promise<WorkflowRun[]> {
+    const res = await this.api<{ workflow_runs: { path: string; event: string; status: string; conclusion: string | null; head_sha: string }[] }>(
+      [`repos/${repo}/actions/runs?head_sha=${headSha}&per_page=100`]);
+    return res.workflow_runs.map((r) => ({ path: r.path, event: r.event, status: r.status, conclusion: r.conclusion, headSha: r.head_sha }));
+  }
+
+  async uploadToRelease(repo: string, tag: string, files: string[], notes: string): Promise<Record<string, string>> {
+    const exists = await this.run(['release', 'view', tag, '--repo', repo, '--json', 'tagName']).then(() => true, () => false);
+    if (exists) await this.run(['release', 'upload', tag, ...files, '--repo', repo, '--clobber']);
+    else await this.run(['release', 'create', tag, ...files, '--repo', repo, '--title', tag, '--notes', notes]);
+    return Object.fromEntries(files.map((f) => [path.basename(f), `https://github.com/${repo}/releases/download/${tag}/${path.basename(f)}`]));
+  }
+
+  async mergePullRequest(repo: string, number: number, headSha: string): Promise<void> {
+    await this.run(['pr', 'merge', String(number), '--repo', repo, '--merge', '--match-head-commit', headSha]);
   }
 
   async openPullRequest(repo: string, branch: string, files: RepoFile[], title: string, body: string): Promise<{ number: number; url: string }> {
