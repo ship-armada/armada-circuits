@@ -11,40 +11,35 @@ SRC_DIR="$ROOT/src"
 
 CIRCOM_BIN="${CIRCOM_BIN:-circom}"
 
-# All circuit shapes (must match VerifierModule key set)
-SHAPES=(
-  "1,1" "1,2" "2,2" "2,3" "8,4"
-  "2,1" "3,1" "4,1" "5,1" "6,1" "7,1" "8,1"
-  "3,2" "4,2" "5,2" "6,2"
-  "1,3" "3,3" "4,3"
-)
+# Circuits come from circuits.json (via the compiled registry CLI).
+# Pass circuit ids to compile only those, e.g. `npm run compile -- 2x2 8x4`.
+REGISTRY_CLI="$ROOT/dist/src/registry-cli.js"
+if [ ! -f "$REGISTRY_CLI" ]; then
+  echo "Missing $REGISTRY_CLI — run 'npm run build' (npm ci runs it automatically)." >&2
+  exit 1
+fi
+CIRCUITS="$(node "$REGISTRY_CLI" list "$@")"
+COUNT="$(printf '%s\n' "$CIRCUITS" | wc -l | tr -d ' ')"
 
 echo "Compiling Armada circuits..."
 echo "Source: $SRC_DIR"
 echo "Build:  $BUILD_DIR"
-echo "Shapes: ${#SHAPES[@]} total"
+echo "Circuits: $COUNT"
 
 mkdir -p "$BUILD_DIR"
 
-for shape in "${SHAPES[@]}"; do
-  IFS=',' read -r n m <<< "$shape"
-  shape_name="${n}x${m}"
-  outdir="$BUILD_DIR/$shape_name"
-  main_file="$SRC_DIR/main/main_${shape_name}.circom"
+while IFS=$'\t' read -r id entry _power; do
+  outdir="$BUILD_DIR/$id"
+  base="$(basename "$entry" .circom)"
 
-  if [ ! -f "$main_file" ]; then
-    echo "  SKIP $shape_name (no entry point at $main_file)"
-    continue
-  fi
-
-  echo "  Compiling $shape_name..."
+  echo "  Compiling $id..."
   mkdir -p "$outdir"
-  "$CIRCOM_BIN" "$main_file" \
+  "$CIRCOM_BIN" "$ROOT/$entry" \
     --r1cs --wasm --sym \
     -o "$outdir" \
     --O1
 
-  echo "    → $outdir/main_${shape_name}.r1cs"
-done
+  echo "    → $outdir/$base.r1cs"
+done <<< "$CIRCUITS"
 
-echo "Done. Compiled ${#SHAPES[@]} shapes."
+echo "Done. Compiled $COUNT circuits."

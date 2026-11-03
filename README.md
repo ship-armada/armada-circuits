@@ -23,7 +23,9 @@ All 19 circuit shapes compile. UNSAFE single-contributor dev keys (`v0.1.0-dev`)
 - `src/operations/` — operation-specific circuits parameterized by `(N, M)`
 - `src/main/` — entry points (one per circuit shape)
 - `docs/` — formal specifications and test vectors
+- `circuits.json` — the circuit registry: every circuit, its entry point, public-input count, ptau power and whether it is in the ceremony. Compile, dev setup and the ceremony tooling all read it.
 - `scripts/` — deterministic compilation and trusted-setup helpers
+- `tool/` — ceremony tooling (TypeScript, compiled to `dist/` by `npm ci` / `npm run build`)
 - `tests/` — differential and negative tests
 
 ## Dependencies
@@ -57,10 +59,11 @@ See `docs/SPEC.md` for the full matrix and public-input layout.
 ## Build
 
 ```bash
-npm install
-npm run compile       # compile all circuit shapes
-npm run setup:dev     # generate dev ptau + zkey (unsafe — testing only)
-npm run test          # run differential + negative tests (needs compile + setup:dev)
+npm ci              # install dependencies and build the tooling (Node >= 22)
+npm run compile     # compile every circuit in circuits.json (or: npm run compile -- 2x2 8x4)
+npm run setup:dev   # generate dev ptau + zkey (unsafe — testing only; also takes circuit ids)
+npm run test        # static analysis, tooling unit tests, differential + negative tests
+                    # (circuit tests need compile + setup:dev for 1x1 1x2 2x2 3x2)
 ```
 
 ## Security

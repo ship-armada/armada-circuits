@@ -71,6 +71,8 @@ jobs:
       - name: Check phase-1 ptau hash
         run: echo "${PTAU_SHA256}  build/ptau/pot17_final.ptau" | sha256sum -c -
 
+      # Compile every circuit; build (UNSAFE) dev keys only for the shapes the
+      # circuit tests use, which is most of the CI time otherwise.
       - run: npm run compile
-      - run: npm run setup:dev
+      - run: npm run setup:dev -- 1x1 1x2 2x2 3x2
       - run: npm test

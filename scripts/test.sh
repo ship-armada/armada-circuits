@@ -15,6 +15,12 @@ if ! command -v circomspect >/dev/null 2>&1; then
 fi
 npm run lint:circom
 
+echo "Building ceremony tooling..."
+npm run build --silent
+
+echo "Running tooling unit tests..."
+node --test "dist/test/**/*.test.js"
+
 echo "Running tests..."
 # Each test exits non-zero on failure. All but lint-circom-test.js need
 # build/<shape>/ artifacts from `npm run compile && npm run setup:dev`.
