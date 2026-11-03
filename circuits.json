@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "circuits": [
+    {
+      "id": "1x1",
+      "entry": "src/main/main_1x1.circom",
+      "template": "Transact",
+      "publicInputs": 4,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "1x2",
+      "entry": "src/main/main_1x2.circom",
+      "template": "Transact",
+      "publicInputs": 5,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "1x3",
+      "entry": "src/main/main_1x3.circom",
+      "template": "Transact",
+      "publicInputs": 6,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "2x1",
+      "entry": "src/main/main_2x1.circom",
+      "template": "Transact",
+      "publicInputs": 5,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "2x2",
+      "entry": "src/main/main_2x2.circom",
+      "template": "Transact",
+      "publicInputs": 6,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "2x3",
+      "entry": "src/main/main_2x3.circom",
+      "template": "Transact",
+      "publicInputs": 7,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "3x1",
+      "entry": "src/main/main_3x1.circom",
+      "template": "Transact",
+      "publicInputs": 6,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "3x2",
+      "entry": "src/main/main_3x2.circom",
+      "template": "Transact",
+      "publicInputs": 7,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "3x3",
+      "entry": "src/main/main_3x3.circom",
+      "template": "Transact",
+      "publicInputs": 8,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "4x1",
+      "entry": "src/main/main_4x1.circom",
+      "template": "Transact",
+      "publicInputs": 7,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "4x2",
+      "entry": "src/main/main_4x2.circom",
+      "template": "Transact",
+      "publicInputs": 8,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "4x3",
+      "entry": "src/main/main_4x3.circom",
+      "template": "Transact",
+      "publicInputs": 9,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "5x1",
+      "entry": "src/main/main_5x1.circom",
+      "template": "Transact",
+      "publicInputs": 8,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "5x2",
+      "entry": "src/main/main_5x2.circom",
+      "template": "Transact",
+      "publicInputs": 9,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "6x1",
+      "entry": "src/main/main_6x1.circom",
+      "template": "Transact",
+      "publicInputs": 9,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "6x2",
+      "entry": "src/main/main_6x2.circom",
+      "template": "Transact",
+      "publicInputs": 10,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "7x1",
+      "entry": "src/main/main_7x1.circom",
+      "template": "Transact",
+      "publicInputs": 10,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "8x1",
+      "entry": "src/main/main_8x1.circom",
+      "template": "Transact",
+      "publicInputs": 11,
+      "ptauPower": 17,
+      "ceremony": true
+    },
+    {
+      "id": "8x4",
+      "entry": "src/main/main_8x4.circom",
+      "template": "Transact",
+      "publicInputs": 14,
+      "ptauPower": 17,
+      "ceremony": true
+    }
+  ]
+}

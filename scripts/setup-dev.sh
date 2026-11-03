@@ -10,49 +10,52 @@ ROOT="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$ROOT/build"
 PTAU_DIR="$BUILD_DIR/ptau"
 
-# All circuit shapes (must match compile.sh)
-SHAPES=(
-  "1,1" "1,2" "2,2" "2,3" "8,4"
-  "2,1" "3,1" "4,1" "5,1" "6,1" "7,1" "8,1"
-  "3,2" "4,2" "5,2" "6,2"
-  "1,3" "3,3" "4,3"
-)
+# Circuits come from circuits.json (via the compiled registry CLI).
+# Pass circuit ids to set up only those, e.g. `npm run setup:dev -- 2x2`.
+REGISTRY_CLI="$ROOT/dist/src/registry-cli.js"
+if [ ! -f "$REGISTRY_CLI" ]; then
+  echo "Missing $REGISTRY_CLI — run 'npm run build' (npm ci runs it automatically)." >&2
+  exit 1
+fi
+CIRCUITS="$(node "$REGISTRY_CLI" list "$@")"
 
 echo "Running development trusted setup..."
 
 mkdir -p "$PTAU_DIR"
 
-# Phase 1: Powers of Tau (shared across all circuits)
-# Power 17 = 2^17 = 131072 constraints max. Covers all 19 shapes.
-# Largest shape (8x4) has ~94.2k constraints.
-POT_POWER=17
-POT_FILE="$PTAU_DIR/pot${POT_POWER}_final.ptau"
-
-if [ ! -f "$POT_FILE" ]; then
-  echo "Phase 1: Powers of Tau (bn128, power ${POT_POWER})..."
-  echo "armada-dev-entropy" | snarkjs powersoftau new bn128 $POT_POWER "$PTAU_DIR/pot${POT_POWER}_0000.ptau"
-  echo "armada-contribution-entropy" | snarkjs powersoftau contribute "$PTAU_DIR/pot${POT_POWER}_0000.ptau" \
-    "$PTAU_DIR/pot${POT_POWER}_0001.ptau" --name="dev"
-  snarkjs powersoftau prepare phase2 "$PTAU_DIR/pot${POT_POWER}_0001.ptau" \
-    "$POT_FILE"
-  echo "  → $POT_FILE"
-else
-  echo "Phase 1: Using existing $POT_FILE"
-fi
+# Phase 1: Powers of Tau, one file per power, shared by every circuit that
+# needs it. Power 17 = 2^17 = 131072 constraints max; the largest shape (8x4)
+# has ~94.2k constraints. A pre-placed build/ptau/pot<power>_final.ptau (e.g.
+# the Hermez ptau, as CI does) is used as-is.
+ensure_ptau() {
+  local power="$1"
+  local pot_file="$PTAU_DIR/pot${power}_final.ptau"
+  if [ ! -f "$pot_file" ]; then
+    echo "Phase 1: Powers of Tau (bn128, power ${power})..." >&2
+    echo "armada-dev-entropy" | snarkjs powersoftau new bn128 "$power" "$PTAU_DIR/pot${power}_0000.ptau" >&2
+    echo "armada-contribution-entropy" | snarkjs powersoftau contribute "$PTAU_DIR/pot${power}_0000.ptau" \
+      "$PTAU_DIR/pot${power}_0001.ptau" --name="dev" >&2
+    snarkjs powersoftau prepare phase2 "$PTAU_DIR/pot${power}_0001.ptau" \
+      "$pot_file" >&2
+    echo "  → $pot_file" >&2
+  else
+    echo "Phase 1: Using existing $pot_file" >&2
+  fi
+  printf '%s\n' "$pot_file"
+}
 
 # Phase 2: Per-circuit zkey generation
-for shape_csv in "${SHAPES[@]}"; do
-  IFS=',' read -r n m <<< "$shape_csv"
-  shape="${n}x${m}"
-  R1CS="$BUILD_DIR/$shape/main_${shape}.r1cs"
-  ZKEY_DIR="$BUILD_DIR/$shape"
+while IFS=$'\t' read -r id entry power; do
+  ZKEY_DIR="$BUILD_DIR/$id"
+  R1CS="$ZKEY_DIR/$(basename "$entry" .circom).r1cs"
 
   if [ ! -f "$R1CS" ]; then
-    echo "  SKIP $shape (no .r1cs — run compile first)"
+    echo "  SKIP $id (no .r1cs — run compile first)"
     continue
   fi
 
-  echo "Phase 2: $shape..."
+  POT_FILE="$(ensure_ptau "$power")"
+  echo "Phase 2: $id..."
 
   # Initial zkey (ceremony start)
   snarkjs groth16 setup "$R1CS" "$POT_FILE" "$ZKEY_DIR/0000.zkey"
@@ -67,7 +70,7 @@ for shape_csv in "${SHAPES[@]}"; do
 
   echo "  → $ZKEY_DIR/final.zkey"
   echo "  → $ZKEY_DIR/vkey.json"
-done
+done <<< "$CIRCUITS"
 
 echo "Dev setup complete."
 echo "WARNING: These keys are NOT secure. Do not use on mainnet."

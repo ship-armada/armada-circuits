@@ -7,18 +7,33 @@
   "scripts": {
     "compile": "bash scripts/compile.sh",
     "setup:dev": "bash scripts/setup-dev.sh",
+    "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
     "test": "bash scripts/test.sh",
-    "lint:circom": "circomspect src/**/*.circom || true",
-    "clean": "rm -rf build/*"
+    "ceremony": "node dist/src/cli.js",
+    "coordinator": "node dist/src/coordinator-cli.js",
+    "lint:circom": "node scripts/lint-circom.js",
+    "clean": "rm -rf build/* dist"
   },
   "devDependencies": {
+    "@types/node": "22.20.5",
     "circom2": "^0.2.18",
-    "circomlib": "^2.0.5",
+    "circomlib": "2.0.5",
     "circomlibjs": "^0.1.7",
-    "snarkjs": "^0.7.0"
+    "typescript": "5.9.3"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22"
   },
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@iden3/binfileutils": "0.0.12",
+    "@noble/curves": "1.9.7",
+    "@noble/hashes": "1.8.0",
+    "ffjavascript": "0.3.1",
+    "snarkjs": "0.7.6"
+  },
+  "bin": {
+    "armada-ceremony": "dist/src/cli.js"
+  }
 }

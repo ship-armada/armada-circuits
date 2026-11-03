@@ -35,7 +35,7 @@ A circuit is identified by `(nullifiers, commitments)`, abbreviated `(N,M)`.
 | Shape | Operation | Notes |
 |-------|-----------|-------|
 | (1,1) | Cross-contract adapt | One input note unshielded, one output shielded back; `adaptParams` binds the destination. |
-| (1,2) | Shield | One plaintext preimage → two output commitments (one real, one dummy for padding). |
+| (1,2) | Transfer with change | Spend 1 note, create 2 outputs (recipient + change). Shields need no proof (see Resolved Questions). |
 | (2,2) | Simple transfer | Spend 2 notes, create 2 outputs (recipient + change). |
 | (2,3) | Transfer with change / fee | Spend 2 notes, create 3 outputs. |
 | (N,1) | Consolidation unshield | Spend N notes, create 1 change commitment. |
@@ -76,31 +76,33 @@ All `leavesIndices` within one proof must be pairwise distinct (`IsEqual` constr
 
 ### 3. Ownership / Spend Authorization
 
-Each input note is signed with EdDSA over BabyJubJub. The public key used for verification is derived from the note owner's spending key.
+One EdDSA signature over BabyJubJub, made with the spending key, authorizes the whole transaction. It signs `Poseidon(merkleRoot, boundParamsHash, ...nullifiers, ...commitmentsOut)`, so it binds every public input. All input notes must belong to that key: each input's `npk` is derived from `masterPublicKey = Poseidon(spendingPublicKey, nullifyingKey)`.
 
 ### 4. Value Conservation
 
-For each token type:
+All inputs and outputs of one proof share a single `token`, and:
 
 ```
-sum(inputValues) == sum(outputValues) + fee
+sum(valueIn) == sum(valueOut)
 ```
 
-Fees are computed outside the circuit and bound via `boundParamsHash`. The circuit proves the fee value is included consistently.
+There is no separate fee term: a broadcaster fee is paid as an ordinary output note, and an unshield is one of the output commitments whose preimage the contract checks. Every value is range-checked to 120 bits, so the equality holds over the integers, not just mod p.
 
 ### 5. Output Commitment Formation
 
 Each output commitment must satisfy:
 
 ```
-commitment = Poseidon(npk, token, value, randomness)
+commitment = Poseidon(npk, token, value)
 ```
+
+The note's randomness enters through `npk = Poseidon(masterPublicKey, random)`, not the commitment hash.
 
 Exact field ordering and width are defined in `PRIMITIVES.md`.
 
 ### 6. Bound Parameters Binding
 
-The contract hashes `boundParams` and passes it as public input `[1]`. The circuit constrains the same hash over the private witness-bound parameters. This prevents a malicious relayer or contract from altering fees, token, adapter address, or other operation metadata after the proof is generated.
+The contract hashes `boundParams` and passes it as public input `[1]`. The circuit does not recompute this hash; it binds it through the spend signature (section 3), which covers `boundParamsHash`. This prevents a malicious relayer or contract from altering fees, token, adapter address, or other operation metadata after the proof is generated.
 
 ## Adapt / Cross-Contract Binding
 
@@ -114,7 +116,7 @@ The adapter contract supplies `adaptParams` and the circuit proves the output co
 
 ## Resolved Questions (from live capture, 2026-06-30)
 
-- [x] **Poseidon width**: 2-input Poseidon (t=3) for all hashes (NPK, commitment, nullifier, Merkle nodes).
+- [x] **Poseidon width**: 2-input Poseidon (t=3) for NPK, nullifier and Merkle nodes; 3-input Poseidon for the master public key and note commitments; `Poseidon(2 + N + M)` for the signed message hash.
 - [x] **boundParams**: Includes `adaptContract` and `adaptParams` as direct fields within the struct (not just the hash).
 - [x] **Shield operations**: Do NOT require a ZK proof. Shield creates a commitment directly from the plaintext preimage. The shield fee is deducted (50 bps) and the remaining value is committed.
 - [x] **Merkle leaf ordering**: Path indices are a packed bigint (little-endian binary). Bit 0 = left, bit 1 = right, starting from the leaf.

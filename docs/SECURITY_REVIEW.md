@@ -15,8 +15,9 @@
 | 4 | No range check on npkOut values | **Low** | Acceptable |
 | 5 | Merkle depth hardcoded to 16 | **Informational** | By design |
 | 6 | EdDSA signature malleability (`S` vs `S + l`) | **None** | Not present (verified: circomlib enforces `S < l`) |
-| 7 | Verification keys are owner-set with no on-chain VK/circuit correspondence check | **Low** | Operational: use multisig/timelock owner |
-| 8 | `testingMode` / `VERIFICATION_BYPASS` proof-verification bypasses in verifier contracts | **Critical if enabled** | Testnet-only; MUST be removed before production |
+| 7 | Verification keys are owner-set with no on-chain VK/circuit correspondence check | **Low** | Owner is the governance timelock (armada-poc #349); VK check against the ceremony release in the deployment checklist (#406, `docs/ARMADA_POC_HANDOFF.md`) |
+| 8 | `testingMode` / `VERIFICATION_BYPASS` proof-verification bypasses in verifier contracts | **Critical** (`testingMode`) / **Low** (`VERIFICATION_BYPASS`) | **Fixed**: both removed in armada-poc PR #639 (#633) |
+| 12 | circomspect CS0010: `Num2Bits(depth)` in `MerkleTreeProof` | **Informational** | False positive (`depth` is always 16); accepted in `scripts/circomspect-accepted.json` |
 
 ## Findings
 
@@ -93,15 +94,17 @@ A Schnorr-style EdDSA verifier that only bounds `S < 2^253` would accept `(R8, S
 
 ### 7. Owner-Set Verification Keys (Low, Operational)
 
-`setVerificationKey` (armada-poc `PrivacyPool.sol` / `VerifierModule.sol`) is owner-only, and the contract cannot verify that an uploaded VK actually corresponds to these circuits. A compromised owner key could register a VK for a malicious circuit and drain the pool.
+`setVerificationKey` (armada-poc `VerifierModule.sol`) is owner-only and silently overwrites, and the contract cannot verify that an uploaded VK actually corresponds to these circuits. A compromised owner key could register a VK for a malicious circuit and drain the pool.
 
-**Recommendation:** Put the owner behind a multisig and/or timelock before production, and pin expected VK hashes in the deployment checklist (see armada-poc #406).
+**Status (armada-poc `main` @ `64436c14`, 2026-10-29):** the owner is the governance timelock (#349); keeping `setVerificationKey` changeable but timelock-gated is a recorded decision (#211), and every change emits `VerifyingKeySet`. The remaining step is checking that the registered keys are the ceremony's: the ceremony release ships `vkeys.json`, and the VK check for armada-poc's deployment checklist (#406) is specified in `docs/ARMADA_POC_HANDOFF.md`.
 
-### 8. Proof-Verification Bypass Switches (Critical if enabled — testnet only)
+### 8. Proof-Verification Bypass Switches (Fixed)
 
-armada-poc `PrivacyPool.sol` (the live verification path), `VerifierModule.sol` (which sets the flag) and `Verifier.sol` contain POC-only bypasses that make verification return `true` unconditionally: the `testingMode` flag and `tx.origin == VERIFICATION_BYPASS`. With verification disabled, an attacker can submit an arbitrary `unshieldPreimage` plus its hash as the last commitment and withdraw funds they never deposited — the pool can be drained in one transaction.
+armada-poc's verifier contained two POC bypasses that made verification return `true`:
+- the owner-set `testingMode` flag. With it enabled, anyone could submit an arbitrary `unshieldPreimage` plus its hash as the last commitment and withdraw funds never deposited, draining the pool in one transaction (**Critical**);
+- `tx.origin == VERIFICATION_BYPASS`, where the address is `0x…dEaD`. No one holds that key, so no real transaction can come from it; it only let gas-estimation simulations skip the proof, as upstream Railgun does (**Low**).
 
-**Status:** Tolerated on testnet (user decision, 2026-07-27). **MUST be removed before production** — delete the code paths entirely rather than relying on flag values, and assert their absence in the deployment checklist.
+**Status: Fixed.** Both removed in armada-poc PR #639 (issue #633). `PrivacyPoolStorage.testingMode` remains as a declared but unused storage slot (presumably to keep the storage layout); nothing reads it.
 
 ### 9. Merkle Proof Implementation (Verified Correct)
 
@@ -127,6 +130,18 @@ The EdDSA message hash includes all public signals: `merkleRoot`, `boundParamsHa
 - Nullifier substitution (would invalidate signature)
 - Commitment tampering (would invalidate signature)
 
+### 12. Static Analysis — circomspect 0.9.0
+
+`npm test` runs circomspect over `src/lib`, `src/operations` and `src/main` via `scripts/lint-circom.js`, which fails on any finding not listed in `scripts/circomspect-accepted.json` (each entry carries a reason) and on accepted entries that are no longer reported.
+
+**Warning level (enforced):** one finding.
+- **CS0010** at `src/lib/merkle.circom` (`component idxBits = Num2Bits(depth);`): `Num2Bits` may alias. False positive: `Num2Bits(n)` can alias only when `n >= 254`, because only then can `sum(b_i * 2^i)` exceed p. `MerkleTreeProof` is instantiated only as `MerkleTreeProof(16)` (`Transact.circom`), so each leaf index has exactly one 16-bit decomposition. circomspect flags it because it cannot resolve the template parameter; the constant-width `Num2Bits(120)` checks in `Transact.circom` are not flagged.
+
+**Info level (reviewed, not enforced):** 40 notes of two kinds, CS0003 (comparisons with values > p/2) and CS0004 (field arithmetic could overflow).
+- Most are compile-time index and size arithmetic on template parameters and loop variables (`i < N`, `i * 16 + j`, `2 + N + M`, `N * (N - 1) / 2`), which never approaches p.
+- `merkle.circom` path selection (`deltaLR[i] <== idxBits.out[i] * (pathElements[i] - levelHash[i])` and the two `levelHash[i] ± deltaLR[i]` inputs): exact field arithmetic by design; `idxBits.out[i]` is constrained to {0, 1}, so the result is either `current` or `sibling`.
+- `Transact.circom` value sums (`accIn += valueIn[i]`, `accOut += valueOut[j]`): overflow is finding 1, prevented by the `Num2Bits(120)` range checks (worst case `8 × 2^120 < p`).
+
 ## Conclusion
 
-The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; finding 6 does not apply; the remaining items are accepted-by-design or operational (trusted-setup ceremony, owner key, bypass removal) and tracked in the production checklist.
+The circuit is sound. Findings 1 (value range checks) and 2 (input-note distinctness) are now enforced in `Transact.circom`; finding 6 does not apply; the circomspect findings (12) are reviewed and accepted with reasons; the remaining items are accepted-by-design or operational (trusted-setup ceremony, owner key, bypass removal) and tracked in the production checklist.
