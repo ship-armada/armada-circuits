@@ -46,6 +46,14 @@ export interface Manifest {
   version: 2;
   requiredToolVersion: string;
   snarkjsVersion: string;
+  coordination: {
+    /** Upstream repo the ceremony runs in, "<owner>/<name>". */
+    repo: string;
+    /** Issue number where contributors post turn claims. */
+    queueIssue: number;
+    /** Release in `repo` that holds accepted zkeys. */
+    officialReleaseTag: string;
+  };
   ptau: { sha256: string; blake2b: string; power: number; mirrors: string[] };
   window: { opens: string; closes: string };
   beacon: {
@@ -85,6 +93,7 @@ export const GITHUB_HANDLE = /^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}
 const HEX64 = /^[0-9a-f]{64}$/;
 const HEX128 = /^[0-9a-f]{128}$/;
 const HEX = /^[0-9a-f]+$/;
+const REPO = /^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/;
 const MIRROR_KINDS: MirrorKind[] = ['fork', 'official', 'ipfs'];
 const MODES: ContributionMode[] = ['tool', 'byo-tool'];
 const STATUSES: ChainStatus[] = ['open', 'closed', 'finalized'];
@@ -169,6 +178,15 @@ function schemaProblems(m: Record<string, unknown>): string[] {
   if (m.version !== 2) p.push('version must be 2');
   if (!isNonEmptyString(m.requiredToolVersion)) p.push('requiredToolVersion must be a non-empty string');
   if (!isNonEmptyString(m.snarkjsVersion)) p.push('snarkjsVersion must be a non-empty string');
+
+  const co = m.coordination;
+  if (!isRecord(co)) {
+    p.push('coordination must be an object');
+  } else {
+    if (typeof co.repo !== 'string' || !REPO.test(co.repo)) p.push('coordination.repo must be "<owner>/<name>"');
+    if (!Number.isInteger(co.queueIssue) || (co.queueIssue as number) < 1) p.push('coordination.queueIssue must be a positive integer');
+    if (!isNonEmptyString(co.officialReleaseTag)) p.push('coordination.officialReleaseTag must be a non-empty string');
+  }
 
   const ptau = m.ptau;
   if (!isRecord(ptau)) {

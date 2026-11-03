@@ -14,6 +14,7 @@ const manifest = (policy: Manifest['policy']): Manifest => ({
   version: 2,
   requiredToolVersion: '1.0.0',
   snarkjsVersion: '0.7.6',
+  coordination: { repo: 'ship-armada/armada-circuits', queueIssue: 10, officialReleaseTag: 'ceremony-zkeys' },
   ptau: { sha256: SHA('a'), blake2b: BLAKE('b'), power: 17, mirrors: ['https://circom.info/p.ptau'] },
   window: { opens: '2027-01-01T00:00:00Z', closes: '2027-01-22T00:00:00Z' },
   beacon: { type: 'drand', chainHash: SHA('c'), round: 1000, iterationsExp: 10 },

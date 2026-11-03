@@ -21,6 +21,7 @@ const baseManifest = (): Manifest => ({
   version: 2,
   requiredToolVersion: '1.0.0',
   snarkjsVersion: '0.7.6',
+  coordination: { repo: 'ship-armada/armada-circuits', queueIssue: 10, officialReleaseTag: 'ceremony-zkeys' },
   ptau: { sha256: SHA('a'), blake2b: BLAKE('b'), power: 17, mirrors: ['https://circom.info/powersOfTau28_hez_final_17.ptau'] },
   window: { opens: '2027-01-01T00:00:00Z', closes: '2027-01-22T00:00:00Z' },
   beacon: { type: 'drand', chainHash: SHA('c'), round: 1000, iterationsExp: 10 },
@@ -98,6 +99,16 @@ test('parseManifest reports schema problems', () => {
     'ptau.sha256 must be 64 lowercase hex characters',
     'beacon.type must be "drand"',
     'policy.minByo must be a non-negative integer',
+  ]);
+});
+
+test('parseManifest validates the coordination block', () => {
+  const m = baseManifest() as unknown as Record<string, unknown>;
+  m.coordination = { repo: 'not a repo', queueIssue: 0, officialReleaseTag: '' };
+  assert.deepEqual(problemsOf(() => parseManifest(m)), [
+    'coordination.repo must be "<owner>/<name>"',
+    'coordination.queueIssue must be a positive integer',
+    'coordination.officialReleaseTag must be a non-empty string',
   ]);
 });
 
