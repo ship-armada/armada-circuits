@@ -4,8 +4,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Readable } from 'node:stream';
-import { pipeline } from 'node:stream/promises';
+import { assertUrlAllowed, downloadToFile } from './http';
 import { runVerifyWorker, type VerifyResult } from './verify-worker';
 
 /** The Hermez power-17 ptau (D13): pinned hashes and known mirrors. */
@@ -37,21 +36,13 @@ export async function hashFile(file: string): Promise<{ sha256: string; blake2b:
   return { sha256: sha.digest('hex'), blake2b: blake.digest('hex') };
 }
 
-async function download(url: string, out: string, timeoutMs: number): Promise<void> {
-  const res = await fetch(url, { signal: AbortSignal.timeout(timeoutMs) });
-  if (!res.ok || !res.body) throw new Error(`HTTP ${res.status}`);
-  await pipeline(Readable.fromWeb(res.body as import('node:stream/web').ReadableStream), fs.createWriteStream(out));
-}
-
 /**
  * Make `dest` hold the pinned ptau. An existing file with the pinned hashes is
  * kept; otherwise each mirror is tried in order, and a download is kept only
  * if both hashes match. Fails with every mirror's reason if none works.
  */
 export async function fetchPtau(opts: FetchPtauOptions): Promise<{ path: string; url?: string; downloaded: boolean }> {
-  for (const url of opts.mirrors) {
-    if (!opts.allowHttp && new URL(url).protocol !== 'https:') throw new Error(`ptau mirror must be https: ${url}`);
-  }
+  for (const url of opts.mirrors) assertUrlAllowed(url, opts);
   const matches = (h: { sha256: string; blake2b: string }) => h.sha256 === opts.sha256 && h.blake2b === opts.blake2b;
   if (fs.existsSync(opts.dest) && matches(await hashFile(opts.dest))) return { path: opts.dest, downloaded: false };
 
@@ -60,7 +51,7 @@ export async function fetchPtau(opts: FetchPtauOptions): Promise<{ path: string;
   const failures: string[] = [];
   for (const url of opts.mirrors) {
     try {
-      await download(url, partial, opts.timeoutMs ?? 60 * 60 * 1000);
+      await downloadToFile(url, partial, opts);
       const got = await hashFile(partial);
       if (got.sha256 !== opts.sha256) throw new Error(`sha256 ${got.sha256} != pinned ${opts.sha256}`);
       if (got.blake2b !== opts.blake2b) throw new Error(`blake2b ${got.blake2b} != pinned ${opts.blake2b}`);
