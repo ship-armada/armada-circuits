@@ -88,6 +88,13 @@ Every contribution PR gets a read-only `contribution-check` (GitHub Actions,
 the PR's current head (`--reverify` re-checks locally instead) and copies the
 zkeys to the official release.
 
+Coordinator commands (`npm run coordinator -- help`): `init`, `add-circuit`,
+`announce`, `accept`, `finalize` (after the window: participant policy check,
+the committed drand round as the beacon, full verify, verifying keys) and
+`release` (all artifacts, `SHA256SUMS` optionally signed with an SSH key, and
+`TRANSCRIPT.md`). Commands that change the manifest write `ceremony/manifest.json`
+for a reviewed PR.
+
 ## Security
 
 This repo contains production-intent circuit sources. All changes require review, differential testing against reference test vectors, and formal/static analysis before any artifact is used on mainnet.

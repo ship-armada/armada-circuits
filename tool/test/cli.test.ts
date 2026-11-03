@@ -49,3 +49,13 @@ test('coordinator command line: accept takes a PR number', () => {
   assert.equal(r.status, 0);
   assert.match(r.stdout, /usage: npm run coordinator -- <command>/);
 });
+
+test('coordinator command line: init, release and add-circuit arguments', () => {
+  const ok = parseCoordinatorCommand(['init', '--opens', '2027-01-01T00:00:00Z', '--closes', '2027-01-22T00:00:00Z', '--queue-issue', '7']);
+  assert.equal(ok.flags['queue-issue'], '7');
+  assert.throws(() => parseCoordinatorCommand(['init', '--opens', '2027-01-01T00:00:00Z', '--closes', '2027-01-22T00:00:00Z']), /init needs --queue-issue/);
+  assert.throws(() => parseCoordinatorCommand(['init', '--opens', 'soon', '--closes', '2027-01-22T00:00:00Z', '--queue-issue', '7']), /--opens must be an ISO 8601 time/);
+  assert.throws(() => parseCoordinatorCommand(['release']), /release needs --tag/);
+  assert.equal(parseCoordinatorCommand(['add-circuit', 'disclosure']).positionals[0], 'disclosure');
+  assert.equal(parseCoordinatorCommand(['release', '--tag', 'v1.0.0', '--publish']).flags.publish, true);
+});

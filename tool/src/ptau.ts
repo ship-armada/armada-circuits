@@ -4,6 +4,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import * as binFileUtils from '@iden3/binfileutils';
 import { assertUrlAllowed, downloadToFile, type DownloadOptions } from './http';
 import { runVerifyWorker, type VerifyResult } from './verify-worker';
 
@@ -67,4 +68,19 @@ export async function fetchPtau(opts: FetchPtauOptions): Promise<{ path: string;
  */
 export async function verifyPtauTranscript(ptau: string): Promise<VerifyResult> {
   return runVerifyWorker(['ptau', ptau]);
+}
+
+/** The power (log2 of the maximum constraint count) recorded in a ptau file's header. */
+export async function ptauPower(ptau: string): Promise<number> {
+  const { fd, sections } = await binFileUtils.readBinFile(ptau, 'ptau', 1);
+  try {
+    await binFileUtils.startReadUniqueSection(fd, sections, 1);
+    const n8 = await fd.readULE32();
+    await binFileUtils.readBigInt(fd, n8);
+    const power = await fd.readULE32();
+    await binFileUtils.endReadSection(fd, true);
+    return power;
+  } finally {
+    await fd.close();
+  }
 }
