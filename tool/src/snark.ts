@@ -1,13 +1,12 @@
 // ABOUTME: Thin wrapper over snarkjs for the ceremony: base zkey, contribute, beacon, verify, vkey export.
 // ABOUTME: Also reads a zkey's contribution history and implements the null-contribution and reused-secret checks.
 
-import { execFile } from 'node:child_process';
 import crypto from 'node:crypto';
-import path from 'node:path';
 import { blake2b } from '@noble/hashes/blake2b';
 import * as binFileUtils from '@iden3/binfileutils';
 import { buildBn128, ChaCha, type Curve } from 'ffjavascript';
 import { zKey } from 'snarkjs';
+import { runVerifyWorker, type VerifyResult } from './verify-worker';
 
 /** One contribution's public data, as stored in a zkey's MPC section (points as uncompressed hex). */
 export interface ZkeyContribution {
@@ -214,24 +213,11 @@ export async function applyBeacon(oldZkey: string, newZkey: string, name: string
 
 /**
  * Full `snarkjs zkey verify` of a zkey against its r1cs and ptau, run in a
- * child process (verify-worker). snarkjs verify leaves file handles open, which
- * otherwise surface as garbage-collection warnings; it also keeps parsing of an
- * untrusted zkey out of this process. Failure details snarkjs would print are
- * returned instead. A crash or malformed file counts as invalid.
+ * child process (see verify-worker.ts). Failure details snarkjs would print
+ * are returned instead. A crash or malformed file counts as invalid.
  */
-export async function verifyZkey(r1cs: string, ptau: string, zkey: string): Promise<{ ok: boolean; messages: string[] }> {
-  const worker = path.join(__dirname, 'verify-worker.js');
-  return new Promise((resolve) => {
-    execFile(process.execPath, [worker, r1cs, ptau, zkey], { maxBuffer: 16 * 1024 * 1024 }, (err, stdout, stderr) => {
-      try {
-        const res = JSON.parse(stdout) as { ok: boolean; messages: string[] };
-        if (stderr.trim() !== '') res.messages.push(stderr.trim());
-        resolve({ ok: res.ok === true && stderr.trim() === '', messages: res.messages });
-      } catch {
-        resolve({ ok: false, messages: [err ? err.message : 'verify worker produced no result', stderr.trim()].filter((m) => m !== '') });
-      }
-    });
-  });
+export async function verifyZkey(r1cs: string, ptau: string, zkey: string): Promise<VerifyResult> {
+  return runVerifyWorker(['zkey', r1cs, ptau, zkey]);
 }
 
 export async function exportVkey(zkey: string): Promise<Record<string, unknown>> {
