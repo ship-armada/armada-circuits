@@ -39,6 +39,9 @@ export async function accept(deps: AcceptDeps, number: number, opts: AcceptOptio
   const info = await gh.getPullRequest(repo, number);
   if (info.state !== 'open') throw new Error(`PR #${number} is ${info.state}`);
   if (!info.headRef.startsWith(CONTRIBUTION_BRANCH_PREFIX)) throw new Error(`PR #${number} (${info.headRef}) is not a ceremony contribution branch`);
+  if (Date.parse(info.createdAt) >= Date.parse(m.window.closes)) {
+    throw new Error(`PR #${number} was opened at ${info.createdAt}, after the contribution window closed at ${m.window.closes}`);
+  }
 
   const turn = lastTurn(m) + 1;
   const attPath = attestationPath(turn, info.author);

@@ -81,7 +81,7 @@ export async function fetchVerifiedRound(
   chain: DrandChainInfo,
   round: number,
   endpoints: string[] = DRAND_ENDPOINTS,
-  opts: { minVerified?: number; timeoutMs?: number; allowHttp?: boolean } = {},
+  opts: { minVerified?: number; timeoutMs?: number; allowHttp?: boolean; fetch?: typeof fetch } = {},
 ): Promise<DrandBeacon> {
   const minVerified = opts.minVerified ?? 2;
   for (const e of endpoints) {
@@ -93,7 +93,7 @@ export async function fetchVerifiedRound(
   const failures: string[] = [];
   for (const e of endpoints) {
     try {
-      const res = await fetch(`${e}/${chain.hash}/public/${round}`, { signal: AbortSignal.timeout(opts.timeoutMs ?? 15_000) });
+      const res = await (opts.fetch ?? fetch)(`${e}/${chain.hash}/public/${round}`, { signal: AbortSignal.timeout(opts.timeoutMs ?? 15_000) });
       if (res.status === 404 || res.status === 425) {
         notYet += 1;
         throw new Error(`HTTP ${res.status} (round not available)`);

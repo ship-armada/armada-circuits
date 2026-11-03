@@ -37,6 +37,7 @@ export interface GitHub {
 export interface PullRequestInfo {
   number: number;
   author: string;
+  createdAt: string;
   state: 'open' | 'merged' | 'closed';
   headRef: string;
   headSha: string;
@@ -60,8 +61,8 @@ export interface MaintainerGitHub extends GitHub {
   /** A file's contents at a commit (e.g. the PR head in the contributor's fork). */
   readFileAtRef(repo: string, filePath: string, ref: string): Promise<string>;
   listWorkflowRuns(repo: string, headSha: string): Promise<WorkflowRun[]>;
-  /** Upload files to a release in `repo` itself (created if missing); returns download URLs by basename. */
-  uploadToRelease(repo: string, tag: string, files: string[], notes: string): Promise<Record<string, string>>;
+  /** Upload files to a release in `repo` itself (created if missing, as a draft if asked); returns download URLs by basename. */
+  uploadToRelease(repo: string, tag: string, files: string[], notes: string, opts?: { draft?: boolean }): Promise<Record<string, string>>;
   /** Merge a PR, but only if its head is still `headSha`. */
   mergePullRequest(repo: string, number: number, headSha: string): Promise<void>;
 }
@@ -159,6 +160,7 @@ export class GhCli implements MaintainerGitHub {
     return {
       number: p.number,
       author: p.user.login,
+      createdAt: p.created_at,
       state: p.state === 'open' ? 'open' : p.merged_at ? 'merged' : 'closed',
       headRef: p.head.ref,
       headSha: p.head.sha,
@@ -181,10 +183,10 @@ export class GhCli implements MaintainerGitHub {
     return res.workflow_runs.map((r) => ({ path: r.path, event: r.event, status: r.status, conclusion: r.conclusion, headSha: r.head_sha }));
   }
 
-  async uploadToRelease(repo: string, tag: string, files: string[], notes: string): Promise<Record<string, string>> {
+  async uploadToRelease(repo: string, tag: string, files: string[], notes: string, opts: { draft?: boolean } = {}): Promise<Record<string, string>> {
     const exists = await this.run(['release', 'view', tag, '--repo', repo, '--json', 'tagName']).then(() => true, () => false);
     if (exists) await this.run(['release', 'upload', tag, ...files, '--repo', repo, '--clobber']);
-    else await this.run(['release', 'create', tag, ...files, '--repo', repo, '--title', tag, '--notes', notes]);
+    else await this.run(['release', 'create', tag, ...files, '--repo', repo, '--title', tag, '--notes', notes, ...(opts.draft ? ['--draft'] : [])]);
     return Object.fromEntries(files.map((f) => [path.basename(f), this.releaseAssetUrl(repo, tag, path.basename(f))]));
   }
 

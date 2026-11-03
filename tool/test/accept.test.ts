@@ -145,3 +145,15 @@ test('refuses a closed PR and a non-ceremony branch', async () => {
   pr.state = 'closed';
   await assert.rejects(accept(adeps(), pr.number, aopts()), /is closed/);
 });
+
+test('refuses a PR opened after the contribution window closed', async () => {
+  const pr = await contributionPr('alice');
+  gh.passCheck(pr.number);
+  const closes = parseManifest(JSON.parse(fresh)).window.closes;
+  pr.createdAt = new Date(Date.parse(closes) + 1000).toISOString();
+  await assert.rejects(accept(adeps(), pr.number, aopts()), /was opened at .* after the contribution window closed/);
+  // One opened before the close can still be accepted afterwards.
+  pr.createdAt = new Date(Date.parse(closes) - 1000).toISOString();
+  await accept(adeps(), pr.number, aopts());
+  assert.equal(gh.merged.length, 1);
+});

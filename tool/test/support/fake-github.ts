@@ -122,7 +122,7 @@ export class FakeGitHub implements MaintainerGitHub {
   async getPullRequest(repo: string, number: number): Promise<PullRequestInfo> {
     this.assertRepo(repo);
     const p = this.pr(number);
-    return { number, author: p.author, state: p.state, headRef: p.branch, headSha: p.headSha, headRepo: `${p.author}/fork` };
+    return { number, author: p.author, createdAt: p.createdAt, state: p.state, headRef: p.branch, headSha: p.headSha, headRepo: `${p.author}/fork` };
   }
 
   async listPullRequestFiles(repo: string, number: number): Promise<string[]> {
@@ -142,8 +142,14 @@ export class FakeGitHub implements MaintainerGitHub {
     return this.runs.filter((r) => r.headSha === headSha);
   }
 
-  async uploadToRelease(repo: string, tag: string, files: string[]): Promise<Record<string, string>> {
+  /** Releases created through uploadToRelease, by tag. */
+  releases = new Map<string, { draft: boolean; files: string[] }>();
+
+  async uploadToRelease(repo: string, tag: string, files: string[], _notes = '', opts: { draft?: boolean } = {}): Promise<Record<string, string>> {
     this.assertRepo(repo);
+    const r = this.releases.get(tag) ?? { draft: opts.draft === true, files: [] };
+    r.files.push(...files.map((f) => path.basename(f)));
+    this.releases.set(tag, r);
     const out: Record<string, string> = {};
     for (const f of files) out[path.basename(f)] = this.host(`${repo}/releases/download/${tag}/${path.basename(f)}`, f);
     return out;

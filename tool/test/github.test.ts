@@ -88,10 +88,10 @@ test('openPullRequest builds the commit on the fork and opens the PR from owner:
 
 test('getPullRequest maps state, author and head', async () => {
   const gh = new GhCli(runner([[/pulls\/12$/, JSON.stringify({
-    number: 12, user: { login: 'alice' }, state: 'closed', merged_at: '2027-01-01', head: { ref: 'ceremony/turn-0001-alice', sha: 'abc', repo: { full_name: 'alice/armada-circuits' } },
+    number: 12, user: { login: 'alice' }, created_at: '2026-12-31T00:00:00Z', state: 'closed', merged_at: '2027-01-01', head: { ref: 'ceremony/turn-0001-alice', sha: 'abc', repo: { full_name: 'alice/armada-circuits' } },
   })]]));
   assert.deepEqual(await gh.getPullRequest('o/r', 12), {
-    number: 12, author: 'alice', state: 'merged', headRef: 'ceremony/turn-0001-alice', headSha: 'abc', headRepo: 'alice/armada-circuits',
+    number: 12, author: 'alice', createdAt: '2026-12-31T00:00:00Z', state: 'merged', headRef: 'ceremony/turn-0001-alice', headSha: 'abc', headRepo: 'alice/armada-circuits',
   });
 });
 
@@ -136,4 +136,16 @@ test('uploadToRelease creates the release when missing, otherwise uploads with -
   await gh.uploadToRelease('o/r', 'ceremony-zkeys', ['/x/2x2-0001-alice.zkey'], 'notes');
   assert.deepEqual(calls.map((c) => c.slice(0, 2).join(' ')), ['release view', 'release create', 'release view', 'release upload']);
   assert.ok(calls[3].includes('--clobber'));
+});
+
+test('getPullRequest includes the creation time; uploadToRelease can create a draft', async () => {
+  const calls: string[][] = [];
+  const gh = new GhCli(runner([
+    [/pulls\/3$/, JSON.stringify({ number: 3, user: { login: 'a' }, created_at: '2027-01-02T00:00:00Z', state: 'open', merged_at: null, head: { ref: 'r', sha: 's', repo: null } })],
+    [/^release view/, () => { throw new Error('none'); }],
+    [/^release create/, ''],
+  ], calls));
+  assert.equal((await gh.getPullRequest('o/r', 3)).createdAt, '2027-01-02T00:00:00Z');
+  await gh.uploadToRelease('o/r', 'v1.0.0', ['/x/a'], 'notes', { draft: true });
+  assert.ok(calls.find((c) => c[0] === 'release' && c[1] === 'create')!.includes('--draft'));
 });

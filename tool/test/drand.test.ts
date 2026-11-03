@@ -108,3 +108,12 @@ test('fetchVerifiedRound reports a round that is not published yet', async () =>
 test('fetchVerifiedRound refuses plain-http endpoints unless allowed (tests only)', async () => {
   await assert.rejects(fetchVerifiedRound(QUICKNET, R1.round, [urls.good1, urls.good2]), /must be https/);
 });
+
+test('fetchVerifiedRound accepts an injected fetch (tests and offline replays)', async () => {
+  const served = (async (input: string | URL | Request) => {
+    const url = String(input);
+    return url.endsWith(`/public/${R1.round}`) ? new Response(JSON.stringify(R1)) : new Response('', { status: 404 });
+  }) as typeof fetch;
+  const b = await fetchVerifiedRound(QUICKNET, R1.round, ['https://a.test', 'https://b.test'], { fetch: served });
+  assert.equal(b.randomness, R1.randomness);
+});
