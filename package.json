@@ -11,6 +11,7 @@
     "prepare": "npm run build",
     "test": "bash scripts/test.sh",
     "ceremony": "node dist/src/cli.js",
+    "coordinator": "node dist/src/coordinator-cli.js",
     "lint:circom": "node scripts/lint-circom.js",
     "clean": "rm -rf build/* dist"
   },

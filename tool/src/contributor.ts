@@ -71,7 +71,7 @@ export interface TurnDescriptor {
 const pad = (n: number) => String(n).padStart(4, '0');
 const iso = (ms: number) => new Date(ms).toISOString();
 
-export async function loadManifest(deps: ContributorDeps): Promise<Manifest> {
+export async function loadManifest(deps: { gh: GitHub; repo: string }): Promise<Manifest> {
   let text: string;
   try {
     text = await deps.gh.readDefaultBranchFile(deps.repo, MANIFEST_PATH);
@@ -137,13 +137,20 @@ async function acquireTurn(deps: ContributorDeps, handle: string, issue: number,
   }
 }
 
-/** URLs for a circuit's current head, official release first. */
-function headUrls(m: Manifest, id: string): string[] {
+/**
+ * URLs for a circuit's current head, official release first. `accept` copies
+ * each accepted zkey to the official release under its fork file name, so the
+ * official URL is derived rather than written back into the manifest.
+ */
+export function headUrls(gh: GitHub, repo: string, m: Manifest, id: string): string[] {
   const chain = m.circuits[id];
   const last = chain.contributions[chain.contributions.length - 1];
   const mirrors: Mirror[] = last ? last.mirrors : chain.base.mirrors;
   const rank = { official: 0, fork: 1, ipfs: 2 } as const;
-  return [...mirrors].sort((a, b) => rank[a.kind] - rank[b.kind]).map((x) => x.url);
+  const listed = [...mirrors].sort((a, b) => rank[a.kind] - rank[b.kind]).map((x) => x.url);
+  if (!last || mirrors.some((x) => x.kind === 'official')) return listed;
+  const official = gh.releaseAssetUrl(repo, m.coordination.officialReleaseTag, path.basename(new URL(listed[0]).pathname));
+  return [official, ...listed];
 }
 
 function turnDir(deps: ContributorDeps, turn: number): string {
@@ -155,7 +162,7 @@ async function downloadHeads(deps: ContributorDeps, m: Manifest, inputDir: strin
   for (const id of openCircuits(m)) {
     const dest = path.join(inputDir, `${id}.zkey`);
     deps.log(`downloading ${id} head...`);
-    await downloadVerified(headUrls(m, id), headZkeySha256(m, id), dest, deps.download);
+    await downloadVerified(headUrls(deps.gh, deps.repo, m, id), headZkeySha256(m, id), dest, deps.download);
     inputs[id] = dest;
   }
   return inputs;

@@ -6,6 +6,7 @@ import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { EXIT, UsageError, parseCommand } from '../src/cli';
+import { parseCoordinatorCommand } from '../src/coordinator-cli';
 
 const CLI = path.join(__dirname, '..', 'src', 'cli.js');
 const runCli = (...args: string[]) => spawnSync(process.execPath, [CLI, ...args], { encoding: 'utf8' });
@@ -38,4 +39,13 @@ test('a usage error prints the message and usage to stderr and exits 2', () => {
   assert.equal(r.status, EXIT.usage);
   assert.match(r.stderr, /unknown command: frobnicate[\s\S]*usage:/);
   assert.equal(r.stdout, '');
+});
+
+test('coordinator command line: accept takes a PR number', () => {
+  assert.equal(parseCoordinatorCommand(['accept', '12', '--reverify']).flags.reverify, true);
+  assert.throws(() => parseCoordinatorCommand(['accept', 'twelve']), /accept takes a PR number, got twelve/);
+  assert.throws(() => parseCoordinatorCommand(['accept']), /accept takes 1 argument/);
+  const r = spawnSync(process.execPath, [path.join(__dirname, '..', 'src', 'coordinator-cli.js'), 'help'], { encoding: 'utf8' });
+  assert.equal(r.status, 0);
+  assert.match(r.stdout, /usage: npm run coordinator -- <command>/);
 });

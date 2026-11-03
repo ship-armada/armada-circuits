@@ -30,6 +30,8 @@ export interface GitHub {
   uploadToForkRelease(repo: string, tag: string, files: string[], notes: string): Promise<Record<string, string>>;
   /** Commit `files` on top of `repo`'s default branch in a fork branch and open a PR to `repo`. */
   openPullRequest(repo: string, branch: string, files: RepoFile[], title: string, body: string): Promise<{ number: number; url: string }>;
+  /** Download URL of an asset on a release of `repo`. */
+  releaseAssetUrl(repo: string, tag: string, file: string): string;
 }
 
 export interface PullRequestInfo {
@@ -88,6 +90,10 @@ export class GhCli implements MaintainerGitHub {
   private async api<T>(args: string[], input?: unknown): Promise<T> {
     const out = await this.run(['api', ...args, ...(input === undefined ? [] : ['--input', '-'])], input === undefined ? undefined : JSON.stringify(input));
     return (out.trim() === '' ? undefined : JSON.parse(out)) as T;
+  }
+
+  releaseAssetUrl(repo: string, tag: string, file: string): string {
+    return `https://github.com/${repo}/releases/download/${tag}/${file}`;
   }
 
   async whoami(): Promise<string> {
@@ -179,7 +185,7 @@ export class GhCli implements MaintainerGitHub {
     const exists = await this.run(['release', 'view', tag, '--repo', repo, '--json', 'tagName']).then(() => true, () => false);
     if (exists) await this.run(['release', 'upload', tag, ...files, '--repo', repo, '--clobber']);
     else await this.run(['release', 'create', tag, ...files, '--repo', repo, '--title', tag, '--notes', notes]);
-    return Object.fromEntries(files.map((f) => [path.basename(f), `https://github.com/${repo}/releases/download/${tag}/${path.basename(f)}`]));
+    return Object.fromEntries(files.map((f) => [path.basename(f), this.releaseAssetUrl(repo, tag, path.basename(f))]));
   }
 
   async mergePullRequest(repo: string, number: number, headSha: string): Promise<void> {

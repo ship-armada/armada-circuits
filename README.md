@@ -82,6 +82,12 @@ npm run ceremony -- verify --mine # confirm your contribution is in every circui
 Bring-your-own-tool contributions: `contribute --download-only`, contribute with
 any compatible implementation, then `submit <turn.json> <zkey-dir>`.
 
+Every contribution PR gets a read-only `contribution-check` (GitHub Actions,
+`pull_request_target`, no secrets). Coordinators then run
+`npm run coordinator -- accept <pr>`, which merges only if that check passed for
+the PR's current head (`--reverify` re-checks locally instead) and copies the
+zkeys to the official release.
+
 ## Security
 
 This repo contains production-intent circuit sources. All changes require review, differential testing against reference test vectors, and formal/static analysis before any artifact is used on mainnet.

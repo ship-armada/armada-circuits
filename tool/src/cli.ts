@@ -4,7 +4,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import readline from 'node:readline';
-import { parseArgs } from 'node:util';
+import { UsageError, parseCommandLine, type CommandSpec, type ParsedCommand } from './args';
 import { DEFAULT_REPO, contribute, loadManifest, submit, type ContributeOutcome, type ContributorDeps } from './contributor';
 import { doctor, systemProbes } from './doctor';
 import { GhCli } from './github';
@@ -35,45 +35,19 @@ options for every command:
   --repo <owner/name>               ceremony repo (default ${DEFAULT_REPO})`;
 
 export const EXIT = { ok: 0, error: 1, usage: 2, held: 3 } as const;
+export { UsageError };
 
-export class UsageError extends Error {}
-
-export interface ParsedCommand {
-  command: string;
-  repo: string;
-  flags: Record<string, string | boolean | undefined>;
-  positionals: string[];
-}
-
-const COMMAND_OPTIONS: Record<string, Record<string, { type: 'boolean' | 'string' }>> = {
-  doctor: { 'no-practice': { type: 'boolean' } },
-  contribute: { wait: { type: 'boolean' }, 'download-only': { type: 'boolean' }, 'personal-entropy': { type: 'boolean' } },
-  submit: {},
-  status: {},
-  verify: { full: { type: 'boolean' }, mine: { type: 'boolean' }, circuits: { type: 'string' } },
-  help: {},
+const COMMANDS: Record<string, CommandSpec> = {
+  doctor: { options: { 'no-practice': { type: 'boolean' } } },
+  contribute: { options: { wait: { type: 'boolean' }, 'download-only': { type: 'boolean' }, 'personal-entropy': { type: 'boolean' } } },
+  submit: { options: {}, positionals: 2 },
+  status: { options: {} },
+  verify: { options: { full: { type: 'boolean' }, mine: { type: 'boolean' }, circuits: { type: 'string' } } },
+  help: { options: {} },
 };
-const POSITIONALS: Record<string, number> = { submit: 2 };
 
 export function parseCommand(argv: string[]): ParsedCommand {
-  const [command, ...rest] = argv;
-  if (!command || !(command in COMMAND_OPTIONS)) throw new UsageError(command ? `unknown command: ${command}` : 'no command given');
-  let parsed;
-  try {
-    parsed = parseArgs({
-      args: rest,
-      options: { ...COMMAND_OPTIONS[command], repo: { type: 'string' } },
-      allowPositionals: true,
-      strict: true,
-    });
-  } catch (err) {
-    throw new UsageError(err instanceof Error ? err.message : String(err));
-  }
-  const want = POSITIONALS[command] ?? 0;
-  if (parsed.positionals.length !== want) throw new UsageError(`${command} takes ${want} argument(s), got ${parsed.positionals.length}`);
-  const repo = (parsed.values.repo as string | undefined) ?? DEFAULT_REPO;
-  if (!/^[A-Za-z0-9-]+\/[A-Za-z0-9._-]+$/.test(repo)) throw new UsageError(`--repo must be <owner>/<name>, got ${repo}`);
-  return { command, repo, flags: parsed.values as ParsedCommand['flags'], positionals: parsed.positionals };
+  return parseCommandLine(argv, COMMANDS, DEFAULT_REPO);
 }
 
 /** Read a line from the terminal without echoing it. */

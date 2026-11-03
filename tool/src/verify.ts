@@ -4,7 +4,7 @@
 import path from 'node:path';
 import { headZkeySha256 } from './attestation';
 import { turnStatus, type TurnStatus } from './claim';
-import { loadManifest, type ContributorDeps } from './contributor';
+import { headUrls, loadManifest, type ContributorDeps } from './contributor';
 import { QUICKNET, verifyBeacon } from './drand';
 import { downloadVerified, sha256File } from './http';
 import { lastTurn, type Manifest, type Mirror } from './manifest';
@@ -106,11 +106,10 @@ export async function verify(deps: ContributorDeps, opts: VerifyOptions): Promis
       continue;
     }
     const sha = isFinal ? chain.final!.zkeySha256 : headZkeySha256(m, id);
-    const mirrors = isFinal ? chain.final!.mirrors
-      : (chain.contributions.length > 0 ? chain.contributions[chain.contributions.length - 1].mirrors : chain.base.mirrors);
+    const urls = isFinal ? mirrorUrls(chain.final!.mirrors) : headUrls(deps.gh, deps.repo, m, id);
     const file = path.join(deps.workRoot, 'verify', `${id}-${sha.slice(0, 12)}.zkey`);
     try {
-      await downloadVerified(mirrorUrls(mirrors), sha, file, deps.download);
+      await downloadVerified(urls, sha, file, deps.download);
     } catch (err) {
       fail(`${id}: ${err instanceof Error ? err.message : String(err)}`);
       continue;

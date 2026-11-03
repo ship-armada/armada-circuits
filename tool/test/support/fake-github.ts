@@ -51,6 +51,10 @@ export class FakeGitHub implements MaintainerGitHub {
     return `${this.baseUrl}/${relPath}`;
   }
 
+  releaseAssetUrl(repo: string, tag: string, file: string): string {
+    return `${this.baseUrl}/${repo}/releases/download/${tag}/${file}`;
+  }
+
   async whoami(): Promise<string> {
     return this.user;
   }

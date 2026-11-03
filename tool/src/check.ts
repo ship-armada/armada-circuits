@@ -56,6 +56,14 @@ export function githubReleaseUrlAllowed(url: string, author: string): boolean {
   return m !== null && m[1].toLowerCase() === author.toLowerCase();
 }
 
+/**
+ * An allowlist from a regex source where `{author}` stands for the PR author
+ * (used to point tests and re-verification at a non-GitHub host).
+ */
+export function urlAllowedByPattern(pattern: string): (url: string, author: string) => boolean {
+  return (url, author) => new RegExp(pattern.replace('{author}', author.replace(/[^A-Za-z0-9-]/g, ''))).test(url);
+}
+
 export async function runContributionCheck(pr: PrData, env: CheckEnv): Promise<CheckResult> {
   if (!pr.headRef.startsWith(CONTRIBUTION_BRANCH_PREFIX)) {
     return { ok: true, skipped: true, items: [{ name: 'contribution PR', ok: true, detail: `branch ${pr.headRef} is not a ceremony contribution; nothing to check` }] };
