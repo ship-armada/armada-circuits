@@ -196,8 +196,9 @@ function schemaProblems(m: Record<string, unknown>): string[] {
     if (b.type !== 'drand') p.push('beacon.type must be "drand"');
     if (typeof b.chainHash !== 'string' || !HEX64.test(b.chainHash)) p.push('beacon.chainHash must be 64 lowercase hex characters');
     if (!Number.isInteger(b.round) || (b.round as number) < 1) p.push('beacon.round must be a positive integer');
-    if (!Number.isInteger(b.iterationsExp) || (b.iterationsExp as number) < 0 || (b.iterationsExp as number) > 63) {
-      p.push('beacon.iterationsExp must be an integer from 0 to 63');
+    // snarkjs `zkey beacon` accepts numIterationsExp from 10 to 63.
+    if (!Number.isInteger(b.iterationsExp) || (b.iterationsExp as number) < 10 || (b.iterationsExp as number) > 63) {
+      p.push('beacon.iterationsExp must be an integer from 10 to 63');
     }
     for (const k of ['publicKey', 'value', 'signature'] as const) {
       if (b[k] !== undefined && (typeof b[k] !== 'string' || !HEX.test(b[k] as string))) p.push(`beacon.${k} must be lowercase hex`);
