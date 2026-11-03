@@ -20,11 +20,12 @@ export const USAGE = `usage: npm run ceremony -- <command> [options]
 
 commands:
   doctor [--no-practice]            check this machine and run a practice contribution
-  contribute [--wait] [--download-only] [--personal-entropy]
-                                    claim the turn and contribute to every open circuit
+  contribute [--wait] [--download-only] [--no-personal-entropy]
+                                    claim the turn and contribute to every open circuit;
+                                    first asks for optional random text to mix in
                                     --wait            wait for the turn instead of exiting
                                     --download-only   download the inputs for a BYO-tool run
-                                    --personal-entropy  also mix in text you type (optional)
+                                    --no-personal-entropy  don't ask for random text
   submit <turn.json> <zkey-dir>     publish zkeys made by another tool (<zkey-dir>/<circuit>.zkey)
   status                            show the ceremony, who holds the turn, and your turns
   verify [--full] [--mine] [--circuits <id,id,...>]
@@ -39,7 +40,7 @@ export { UsageError };
 
 const COMMANDS: Record<string, CommandSpec> = {
   doctor: { options: { 'no-practice': { type: 'boolean' } } },
-  contribute: { options: { wait: { type: 'boolean' }, 'download-only': { type: 'boolean' }, 'personal-entropy': { type: 'boolean' } } },
+  contribute: { options: { wait: { type: 'boolean' }, 'download-only': { type: 'boolean' }, 'no-personal-entropy': { type: 'boolean' } } },
   submit: { options: {}, positionals: 2 },
   status: { options: {} },
   verify: { options: { full: { type: 'boolean' }, mine: { type: 'boolean' }, circuits: { type: 'string' } } },
@@ -48,6 +49,16 @@ const COMMANDS: Record<string, CommandSpec> = {
 
 export function parseCommand(argv: string[]): ParsedCommand {
   return parseCommandLine(argv, COMMANDS, defaultRepo());
+}
+
+/**
+ * Whether `contribute` should ask for personal entropy: by default on a
+ * terminal (asked up front, so --wait can then run unattended), not with
+ * --no-personal-entropy, and not for --download-only (a BYO tool brings its
+ * own randomness). The operating system's randomness is always used as well.
+ */
+export function shouldPromptForEntropy(cmd: ParsedCommand, isTTY: boolean): boolean {
+  return cmd.command === 'contribute' && isTTY && cmd.flags['no-personal-entropy'] !== true && cmd.flags['download-only'] !== true;
 }
 
 /** Read a line from the terminal without echoing it. */
@@ -124,7 +135,9 @@ async function run(argv: string[]): Promise<number> {
       return r.ok ? EXIT.ok : EXIT.error;
     }
     case 'contribute': {
-      const entropy = cmd.flags['personal-entropy'] ? await promptHidden('Personal entropy (not shown, not stored): ') : undefined;
+      const entropy = shouldPromptForEntropy(cmd, process.stdin.isTTY === true)
+        ? await promptHidden('Type some random text to mix into your contribution (optional; Enter to skip; not shown or stored): ')
+        : undefined;
       return printOutcome(await contribute(deps, { wait: cmd.flags.wait === true, downloadOnly: cmd.flags['download-only'] === true, entropy }));
     }
     case 'submit':

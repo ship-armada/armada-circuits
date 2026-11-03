@@ -62,11 +62,15 @@ previous one. `contribute` checks first:
   contributes, uploads your new keys to a release on your fork, and opens a pull
   request. A claim lapses after 2 hours without a pull request.
 
+`contribute` first asks you to type some random text (mash the keyboard; it is not
+shown or stored). This is optional: press Enter to skip, or pass
+`--no-personal-entropy`. Your secret is always derived from 64 bytes of your
+operating system's cryptographic randomness as well, so the typed text is an extra
+safety net for a weak random generator, never a replacement. It is asked before the
+tool claims or waits for the turn, so `--wait` still runs unattended afterwards.
+
 Your secret randomness exists only in a separate process that exits when it
-finishes; it is never written to disk or printed. snarkjs mixes in 64 bytes of
-operating-system randomness, so you don't need to provide any. If you want to add
-your own as well, use `contribute --personal-entropy` and type anything; it is not
-shown or stored.
+finishes; it is never written to disk or printed.
 
 When it finishes, the tool prints your contribution hashes, your **attestation
 hash**, and a suggested public post. A coordinator accepts your pull request once

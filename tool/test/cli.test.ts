@@ -5,7 +5,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import path from 'node:path';
-import { EXIT, UsageError, parseCommand } from '../src/cli';
+import { EXIT, UsageError, parseCommand, shouldPromptForEntropy } from '../src/cli';
 import { parseCoordinatorCommand } from '../src/coordinator-cli';
 
 const CLI = path.join(__dirname, '..', 'src', 'cli.js');
@@ -80,4 +80,13 @@ test('ARMADA_CEREMONY_REPO sets the default repo for both command lines; --repo 
     if (saved === undefined) delete process.env.ARMADA_CEREMONY_REPO;
     else process.env.ARMADA_CEREMONY_REPO = saved;
   }
+});
+
+test('contribute asks for personal entropy by default, only on a terminal, unless --no-personal-entropy', () => {
+  assert.equal(shouldPromptForEntropy(parseCommand(['contribute']), true), true);
+  assert.equal(shouldPromptForEntropy(parseCommand(['contribute', '--wait']), true), true, 'asked before waiting, so --wait still runs unattended');
+  assert.equal(shouldPromptForEntropy(parseCommand(['contribute']), false), false, 'no terminal: no prompt');
+  assert.equal(shouldPromptForEntropy(parseCommand(['contribute', '--no-personal-entropy']), true), false);
+  assert.equal(shouldPromptForEntropy(parseCommand(['contribute', '--download-only']), true), false, 'BYO runs use their own tool');
+  assert.throws(() => parseCommand(['contribute', '--personal-entropy']), /Unknown option '--personal-entropy'/);
 });
