@@ -13,15 +13,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$ROOT" || exit 1
 
-OWNED_FILES=(
-  "src/operations/TransactOwned.circom"
-  "src/main/main_1x1_owned.circom"
-  "src/main/main_1x2_owned.circom"
-  "src/main/main_1x3_owned.circom"
-)
+OWNED_FILES=("src/operations/TransactOwned.circom" src/main/main_*_owned.circom)
 
-mkdir -p .scratch
-SARIF=".scratch/run-lint-circom-owned.sarif"
+mkdir -p build
+SARIF="build/run-lint-circom-owned.sarif"
 rm -f "$SARIF"
 
 circomspect -l WARNING -s "$SARIF" "${OWNED_FILES[@]}" >/dev/null 2>&1
